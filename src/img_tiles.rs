@@ -1,15 +1,5 @@
 
 pub mod img_tiles {
-	//use image::{RgbImage, ImageBuffer};
-	use crate::{TILE_WIDTH, TILE_HEIGHT};
-	
-	#[derive(Copy, Clone)]
-	pub union TilePixel {
-		pub rgba: [u8; 4],
-		pub rgb: [u8; 3],
-		pub luma_alpha: [u8; 2],
-		pub luma: [u8; 1],
-	}
 	
 	#[derive(Copy, Clone)]
 	pub struct TilesLayout {
@@ -51,8 +41,6 @@ pub mod img_tiles {
 		pub col_idx: u32,
 		pub width: u32,
 		pub height: u32,
-		//pub buf: RgbImage,
-		pub bbuf: Box<[[TilePixel; TILE_WIDTH as usize]; TILE_HEIGHT as usize]>,
 		pub vbuf: Vec<u8>,
 	}
 	
@@ -63,9 +51,7 @@ pub mod img_tiles {
 				col_idx,
 				width,
 				height,
-				//buf: ImageBuffer::from_pixel(width, height, image::Rgb([0, 0, 0])),
-				bbuf: Box::new([[TilePixel {rgba: [u8::MIN, u8::MIN, u8::MIN, u8::MAX]}; TILE_WIDTH as usize]; TILE_HEIGHT as usize]),
-				vbuf: Vec::new(),
+				vbuf: Vec::with_capacity((width * height) as usize),
 			}
 		}
 	}
@@ -122,19 +108,11 @@ pub mod img_tiles {
 				if (col_idx == self.layout.num_tiles_in_col - 1) && self.layout.has_narrow_tiles {
 					height = self.layout.fringe_tile_height;
 				}
-				//let buf = ImageBuffer::from_pixel(width, height, image::Rgb([0, 0, 0]));
-				//let buf2: [u32; TILE_WIDTH as usize * TILE_HEIGHT as usize] = [0; TILE_WIDTH as usize * TILE_HEIGHT as usize];
-				//let mut vbuf = Vec::new();
-				// for i in 0..width*height*3 {
-				// 	vbuf.push(0 as u8);
-				// }
 				let t = Tile {
 					row_idx,
 					col_idx,
 					width,
 					height,
-					//buf,
-					bbuf: Box::new([[TilePixel {rgba: [u8::MIN, u8::MIN, u8::MIN, u8::MAX]}; TILE_WIDTH as usize]; TILE_HEIGHT as usize]),
 					vbuf: Vec::with_capacity((width * height) as usize),
 				};
 				self.seq_idx += self.stride;
