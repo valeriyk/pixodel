@@ -1,13 +1,15 @@
 extern crate image;
 
-mod img_tiles;
-
-use crate::img_tiles::img_tiles::{Tile, TilesLayout, TileGenerator};
-use image::{GenericImage, ImageBuffer};
-use std::sync::mpsc;
-use std::thread;
 use std::process::Output;
+use std::sync::{Arc, mpsc};
+use std::thread;
 
+use image::{GenericImage, ImageBuffer};
+
+use crate::img_tiles::img_tiles::{Tile, TileGenerator, TilesLayout};
+use crate::math::math::Vec3f;
+mod img_tiles;
+mod math;
 
 struct TileMsg {
     tile: Tile,
@@ -20,7 +22,7 @@ struct TileMsg {
 //~ LAST,
 //~ }
 
-const NUM_SLAVES: u32 = 8;
+const NUM_SLAVES: u32 = 1;
 
 const FRAME_WIDTH: u32 = 800;
 const FRAME_HEIGHT: u32 = FRAME_WIDTH;
@@ -28,69 +30,17 @@ const FRAME_HEIGHT: u32 = FRAME_WIDTH;
 const TILE_WIDTH: u32 = 100;
 const TILE_HEIGHT: u32 = TILE_WIDTH;
 
-#[derive(Copy, Clone)]
-struct Vec3f {
-    x: f32,
-    y: f32,
-    z: f32,
-}
-
-impl Vec3f {
-    fn normalize(&self) -> Vec3f {
-        let length: f32 = (*self * *self).sqrt();
-        let length_inverted = 1.0 / length;
-        let res: Vec3f = Vec3f {x: self.x * length_inverted, y: self.y * length_inverted, z: self.z * length_inverted};
-        res
-    }
-}
-
-impl core::ops::Add for Vec3f {
-    type Output = Self;
-    
-    fn add(self, other: Self) -> Self::Output {
-        Self {
-            x: self.x + other.x,
-            y: self.y + other.y,
-            z: self.z + other.z,
-        }
-    }
-}
-
-impl core::ops::Sub for Vec3f {
-    type Output = Self;
-    
-    fn sub(self, other: Self) -> Self::Output {
-        Self {
-            x: self.x - other.x,
-            y: self.y - other.y,
-            z: self.z - other.z,
-        }
-    }
-}
-
-impl core::ops::Mul<Vec3f> for Vec3f {
-    type Output = f32;
-    
-    fn mul(self, other: Vec3f) -> Self::Output {
-        self.x * other.x + self.y * other.y + self.z * other.z
-    }
-}
-
-impl core::ops::Mul<f32> for Vec3f {
-    type Output = Vec3f;
-    
-    fn mul(self, other: f32) -> Self::Output {
-        Vec3f {x: self.x * other, y: self.y * other, z: self.z * other}
-    }
-}
-
 struct Sphere {
     center: Vec3f,
     radius: f32,
 }
 
 impl Sphere {
-    fn ray_intersect(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> (bool, f32) {
+    pub fn new(center: Vec3f, radius: f32) -> Sphere {
+        Sphere {center, radius}
+    }
+    
+    pub fn ray_intersect(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> (bool, f32) {
         let l = self.center - ray_origin;
         let tca = l * ray_dir;
         let d_squared = l * l - tca * tca;
@@ -108,24 +58,31 @@ impl Sphere {
             (false, f32::MAX)
         }
     }
+}
+
+fn cast_ray (ray_orig: Vec3f, ray_dir: Vec3f, scene: &Scene) -> u8 {
+    let mut distance_to_nearest_sphere = f32::MAX;
+    let mut color = 30u8;
     
-    fn cast_ray (&self, ray_orig: Vec3f, ray_dir: Vec3f, light: &Light) -> u8 {
-        let (does_intersect, distance_to_sphere) = self.ray_intersect(ray_orig, ray_dir);
-        if does_intersect == true {
-            let surface_pt: Vec3f = ray_dir * distance_to_sphere;
-            let norm_to_surface: Vec3f = (surface_pt - self.center).normalize();
-            let light_dir: Vec3f = (surface_pt - light.position).normalize();
-            let mut intensity = (light_dir * norm_to_surface);
-            if intensity < 0.0 {
-                intensity = 0.0;
-            }
-            assert!(intensity <= 1.0);
-            (intensity * u8::MAX as f32) as u8
+    for s in &scene.spheres {
+        let (does_intersect, distance_to_sphere) = s.ray_intersect(ray_orig, ray_dir);
+        if does_intersect == true && distance_to_sphere < distance_to_nearest_sphere {
+            distance_to_nearest_sphere = distance_to_sphere;
+            for l in &scene.lights {
+                let surface_pt: Vec3f = ray_dir * distance_to_sphere;
             
-        } else {
-            30u8
+                let norm_to_surface: Vec3f = (surface_pt - s.center).normalize();
+                let light_dir: Vec3f = (surface_pt - l.position).normalize();
+                let mut intensity = (light_dir * norm_to_surface);
+                if intensity < 0.0 {
+                    intensity = 0.0;
+                }
+                assert!(intensity <= 1.0);
+                color = (intensity * u8::MAX as f32) as u8;
+            }
         }
     }
+    color
 }
 
 struct Light {
@@ -133,18 +90,13 @@ struct Light {
     intensity: f32,
 }
 
-fn slv_thread_proc(slave_idx: u32, num_slaves: u32, tx: mpsc::Sender<TileMsg>) {
-    let layout = TilesLayout::new(FRAME_WIDTH, FRAME_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
+struct Scene {
+    spheres: Vec<Sphere>,
+    lights: Vec<Light>,
+}
 
-    let sph = Sphere {
-        center: Vec3f {x: 0.0, y: 0.0, z: -2.0},
-        radius: 1.0,
-    };
-    
-    let light = Light {
-        position: Vec3f {x: -5.0, y: -5.0, z: 0.0},
-        intensity: 1.0,
-    };
+fn slv_thread_proc(slave_idx: u32, num_slaves: u32, tx: mpsc::Sender<TileMsg>, scene: Arc<Scene>) {
+    let layout = TilesLayout::new(FRAME_WIDTH, FRAME_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
     
     let mut tiles = TileGenerator::new(slave_idx, num_slaves, &layout);
     for mut tile in &mut tiles {
@@ -157,9 +109,9 @@ fn slv_thread_proc(slave_idx: u32, num_slaves: u32, tx: mpsc::Sender<TileMsg>) {
                 let ray_x: f32 = (x as f32 * 2.0) / layout.frame_width as f32 - 1.0;
                 let ray_y: f32 = (y as f32 * 2.0) / layout.frame_height as f32 - 1.0;
                 let ray_z = -1.0;
-                let ray_dir = Vec3f {x: ray_x, y: ray_y, z: ray_z};
-                let color = sph.cast_ray(Vec3f {x: 0.0, y: 0.0, z: 0.0}, ray_dir.normalize(), &light);
-        
+                let ray_dir = Vec3f::new(ray_x, ray_y, ray_z);
+                let color = cast_ray(Vec3f::new(0.0, 0.0, 0.0), ray_dir.normalize(), &scene);
+                
                 tile.vbuf.push(color);
                 tile.vbuf.push(u8::MIN);
                 tile.vbuf.push(u8::MIN);
@@ -214,10 +166,34 @@ fn main() {
     let mut thread_handles = vec![];
 
     let (tx, rx) = mpsc::channel();
-
+    
+    //let (tx2, rx2) = mpsc::channel();
+    let mut scene = Scene {spheres: Vec::new(), lights: Vec::new()};
+    
+    let sphere = Sphere {
+        center: Vec3f::new(0.0, 0.0, -2.0),
+        radius: 1.0,
+    };
+    scene.spheres.push(sphere);
+    
+    let sphere = Sphere {
+        center: Vec3f::new(-2.0, 0.0, -4.0),
+        radius: 1.0,
+    };
+    scene.spheres.push(sphere);
+    
+    let light = Light {
+        position: Vec3f::new(-5.0, -5.0, 0.0),
+        intensity: 1.0,
+    };
+    scene.lights.push(light);
+    
+    let scene_glob = Arc::new(scene);
+    
     for i in 0..NUM_SLAVES {
         let tx_slv_to_fbuf = mpsc::Sender::clone(&tx);
-        let handle = thread::spawn(move || slv_thread_proc(i, NUM_SLAVES, tx_slv_to_fbuf));
+        let scene = scene_glob.clone();
+        let handle = thread::spawn(move || slv_thread_proc(i, NUM_SLAVES, tx_slv_to_fbuf, scene));
 
         thread_handles.push(handle);
     }
