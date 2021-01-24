@@ -3,8 +3,8 @@ pub mod img_tiles {
 	
 	#[derive(Copy, Clone)]
 	pub struct TilesLayout {
-		frame_width: u32,
-		frame_height: u32,
+		pub frame_width: u32,
+		pub frame_height: u32,
 		default_tile_width: u32,
 		default_tile_height: u32,
 		fringe_tile_width: u32,
