@@ -22,10 +22,10 @@ struct TileMsg {
 //~ LAST,
 //~ }
 
-const NUM_SLAVES: u32 = 1;
+const NUM_SLAVES: u32 = 8;
 
-const FRAME_WIDTH: u32 = 800;
-const FRAME_HEIGHT: u32 = FRAME_WIDTH;
+const FRAME_WIDTH: u32 = 1200;
+const FRAME_HEIGHT: u32 = 600;
 
 const TILE_WIDTH: u32 = 100;
 const TILE_HEIGHT: u32 = TILE_WIDTH;
@@ -60,6 +60,24 @@ impl Sphere {
     }
 }
 
+fn get_phong_illumination (surface_pt: Vec3f, camera_pt: Vec3f, surface_normal: Vec3f, lights: &Vec<Light>) -> f32 {
+    let shininess: f32 = 20.0;
+    let diffuse_reflection: f32 = 0.0;
+    let specular_reflection: f32 = 0.3;
+    let ambient_reflection: f32 = 0.05;
+    
+    let surface_to_camera: Vec3f = (camera_pt - surface_pt).normalize();
+    let mut illumination = ambient_reflection;
+    for l in lights {
+        let surface_to_light: Vec3f = (l.position - surface_pt).normalize();
+        let diffuse_factor = surface_to_light * surface_normal;
+        let light_reflected_off_surface: Vec3f = surface_normal * diffuse_factor * 2.0 - surface_to_light;
+        let specular_factor = (light_reflected_off_surface * surface_to_camera).powf(shininess);
+        illumination += diffuse_factor * diffuse_reflection + specular_factor * specular_reflection;
+    }
+    illumination
+}
+
 fn cast_ray (ray_orig: Vec3f, ray_dir: Vec3f, scene: &Scene) -> u8 {
     let mut distance_to_nearest_sphere = f32::MAX;
     let mut color = 30u8;
@@ -68,18 +86,13 @@ fn cast_ray (ray_orig: Vec3f, ray_dir: Vec3f, scene: &Scene) -> u8 {
         let (does_intersect, distance_to_sphere) = s.ray_intersect(ray_orig, ray_dir);
         if does_intersect == true && distance_to_sphere < distance_to_nearest_sphere {
             distance_to_nearest_sphere = distance_to_sphere;
-            for l in &scene.lights {
-                let surface_pt: Vec3f = ray_dir * distance_to_sphere;
-            
-                let norm_to_surface: Vec3f = (surface_pt - s.center).normalize();
-                let light_dir: Vec3f = (surface_pt - l.position).normalize();
-                let mut intensity = (light_dir * norm_to_surface);
-                if intensity < 0.0 {
-                    intensity = 0.0;
-                }
-                assert!(intensity <= 1.0);
-                color = (intensity * u8::MAX as f32) as u8;
+            let surface_pt: Vec3f = ray_dir * distance_to_sphere;
+            let norm_to_surface: Vec3f = (surface_pt - s.center).normalize();
+            let mut illumination = get_phong_illumination(surface_pt, ray_orig, norm_to_surface, &scene.lights);
+            if illumination > 1.0 {
+                illumination = 1.0
             }
+            color = (illumination * u8::MAX as f32) as u8;
         }
     }
     color
@@ -90,9 +103,21 @@ struct Light {
     intensity: f32,
 }
 
+impl Light {
+    pub fn new(position: Vec3f, intensity: f32) -> Light {
+        Light {position, intensity}
+    }
+}
+
 struct Scene {
     spheres: Vec<Sphere>,
     lights: Vec<Light>,
+}
+
+impl Scene {
+    pub fn new() -> Scene {
+        Scene {spheres: Vec::new(), lights: Vec::new()}
+    }
 }
 
 fn slv_thread_proc(slave_idx: u32, num_slaves: u32, tx: mpsc::Sender<TileMsg>, scene: Arc<Scene>) {
@@ -102,14 +127,18 @@ fn slv_thread_proc(slave_idx: u32, num_slaves: u32, tx: mpsc::Sender<TileMsg>, s
     for mut tile in &mut tiles {
         // let num_pixels: usize = (tile.width * tile.height) as usize;
         // for _ in 0..num_pixels {
+        let aspect_ratio = (layout.frame_width as f32) / (layout.frame_height as f32);
+        let fov_vert: f32 = 35.0;
+        let fov_scaling_factor = (fov_vert / 2.0).to_radians().tan();
         
         for y in tile.col_idx*tile.height..tile.col_idx*tile.height+tile.height {
             for x in tile.row_idx*tile.width..tile.row_idx*tile.width+tile.width {
-            
-                let ray_x: f32 = (x as f32 * 2.0) / layout.frame_width as f32 - 1.0;
-                let ray_y: f32 = (y as f32 * 2.0) / layout.frame_height as f32 - 1.0;
+                
+                let ray_x: f32 = ((x as f32 * 2.0) / layout.frame_width as f32 - 1.0) * fov_scaling_factor * aspect_ratio;
+                let ray_y: f32 = ((y as f32 * 2.0) / layout.frame_height as f32 - 1.0) * fov_scaling_factor;
                 let ray_z = -1.0;
                 let ray_dir = Vec3f::new(ray_x, ray_y, ray_z);
+                
                 let color = cast_ray(Vec3f::new(0.0, 0.0, 0.0), ray_dir.normalize(), &scene);
                 
                 tile.vbuf.push(color);
@@ -168,25 +197,15 @@ fn main() {
     let (tx, rx) = mpsc::channel();
     
     //let (tx2, rx2) = mpsc::channel();
-    let mut scene = Scene {spheres: Vec::new(), lights: Vec::new()};
+    let mut scene = Scene::new();
     
-    let sphere = Sphere {
-        center: Vec3f::new(0.0, 0.0, -2.0),
-        radius: 1.0,
-    };
-    scene.spheres.push(sphere);
+    scene.spheres.push(Sphere::new(Vec3f::new(10.0, 10.0, -100.0), 10.0));
+    scene.spheres.push(Sphere::new(Vec3f::new(-10.0, -10.0, -100.0), 10.0));
+    scene.spheres.push(Sphere::new(Vec3f::new(0.0, 0.0, -50.0), 5.0));
+    scene.spheres.push(Sphere::new(Vec3f::new(-50.0, 25.0, -100.0), 8.0));
     
-    let sphere = Sphere {
-        center: Vec3f::new(-2.0, 0.0, -4.0),
-        radius: 1.0,
-    };
-    scene.spheres.push(sphere);
-    
-    let light = Light {
-        position: Vec3f::new(-5.0, -5.0, 0.0),
-        intensity: 1.0,
-    };
-    scene.lights.push(light);
+    scene.lights.push(Light::new(Vec3f::new(-50.0, -50.0, -20.0), 1.0));
+    scene.lights.push(Light::new(Vec3f::new(50.0, -50.0, -20.0), 1.0));
     
     let scene_glob = Arc::new(scene);
     
