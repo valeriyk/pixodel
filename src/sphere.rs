@@ -37,13 +37,5 @@ pub mod sphere {
         fn get_normal(&self, surface_pt: Vec3f) -> Vec3f {
             (surface_pt - self.center).normalize()
         }
-        
-        // fn get_type(&self) -> TraceableObjType {
-        //     TraceableObjType::Sphere
-        // }
-        //
-        // fn get_data(self) -> TraceableObj {
-        //     TraceableObj {sphere: self}
-        // }
     }
 }

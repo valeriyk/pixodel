@@ -1,16 +1,22 @@
 extern crate image;
 
-use crate::img_tiles::img_tiles::{Tile, TileGenerator, TilesLayout};
-use crate::math::math::Vec3f;
-use crate::sphere::sphere::Sphere;
-use crate::triangle::triangle::Triangle;
-use image::{GenericImage, ImageBuffer};
 use std::process::Output;
 use std::sync::{Arc, mpsc};
 use std::thread;
 
+use image::{GenericImage, ImageBuffer};
+
+use crate::img_tiles::img_tiles::{Tile, TileGenerator, TilesLayout};
+use crate::light::light::Light;
+use crate::math::math::Vec3f;
+use crate::scene::scene::Scene;
+use crate::sphere::sphere::Sphere;
+use crate::triangle::triangle::Triangle;
+
 mod img_tiles;
+mod light;
 mod math;
+mod scene;
 mod sphere;
 mod triangle;
 
@@ -22,7 +28,7 @@ const FRAME_HEIGHT: u32 = 200;
 const TILE_WIDTH: u32 = 100;
 const TILE_HEIGHT: u32 = TILE_WIDTH;
 
-pub trait Traceable {
+pub trait Traceable: Sync + Send {
     fn is_intersected_by(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> (bool, f32);
     fn get_normal(&self, surface_pt: Vec3f) -> Vec3f;
 }
@@ -57,75 +63,18 @@ struct TileMsg {
     is_last: bool,
 }
 
-struct Light {
-    position: Vec3f,
-    intensity: f32,
-}
 
-impl Light {
-    pub fn new(position: Vec3f, intensity: f32) -> Light {
-        Light {position, intensity}
-    }
-}
-
-pub enum TraceableObj {
-    SphereObj(Sphere),
-    TriangleObj(Triangle),
-}
-
-impl TraceableObj {
-    pub fn obj_is_intersected_by(&self, ray_orig: Vec3f, ray_dir: Vec3f) -> (bool, f32) {
-        match *self {
-            TraceableObj::SphereObj(s) => {
-                s.is_intersected_by(ray_orig, ray_dir)
-            },
-            TraceableObj::TriangleObj(t) => {
-                t.is_intersected_by(ray_orig, ray_dir)
-            },
-        }
-    }
-    
-    pub fn get_obj_normal(&self, surface_pt: Vec3f) -> Vec3f {
-        match *self {
-            TraceableObj::SphereObj(s) => {
-                s.get_normal(surface_pt)
-            },
-            TraceableObj::TriangleObj(t) => {
-                t.get_normal(surface_pt)
-            },
-        }
-    }
-}
-
-struct Scene {
-    lights: Vec<Light>,
-    objects: Vec<TraceableObj>,
-}
-
-impl Scene {
-    pub fn new() -> Scene {
-        Scene {lights: Vec::new(), objects: Vec::new()}
-    }
-    //pub fn add_obj(&mut self, obj: impl Traceable) {
-    pub fn add_obj(&mut self, obj: TraceableObj) {
-        // match obj.get_type() {
-        //     TraceableObjType::Sphere => self.objects.push(obj.get_data()),
-        //     TraceableObjType::Triangle => self.objects.push(obj.get_data()),
-        // }
-        self.objects.push(obj);
-    }
-}
 
 fn cast_ray (ray_orig: Vec3f, ray_dir: Vec3f, scene: &Scene) -> u8 {
     let mut distance_to_nearest_obj = f32::MAX;
     let mut color = 30u8;
     
     for obj in &scene.objects {
-        let (does_intersect, distance_to_obj) = obj.obj_is_intersected_by(ray_orig, ray_dir);
+        let (does_intersect, distance_to_obj) = obj.is_intersected_by(ray_orig, ray_dir);
         if does_intersect == true && distance_to_obj < distance_to_nearest_obj {
             distance_to_nearest_obj = distance_to_obj;
             let surface_pt: Vec3f = ray_dir * distance_to_obj;
-            let norm_to_surface: Vec3f = obj.get_obj_normal(surface_pt);
+            let norm_to_surface: Vec3f = obj.get_normal(surface_pt);
             let mut illumination = get_phong_illumination(surface_pt, ray_orig, norm_to_surface, &scene.lights);
             if illumination > 1.0 {
                 illumination = 1.0
@@ -208,15 +157,27 @@ fn main() {
     
     let mut scene = Scene::new();
     
-    scene.add_obj(TraceableObj::SphereObj(Sphere::new(Vec3f::new(10.0, 10.0, -100.0), 10.0)));
-    scene.add_obj(TraceableObj::SphereObj(Sphere::new(Vec3f::new(-10.0, -10.0, -100.0), 10.0)));
-    scene.add_obj(TraceableObj::SphereObj(Sphere::new(Vec3f::new(0.0, 0.0, -50.0), 5.0)));
-    scene.add_obj(TraceableObj::SphereObj(Sphere::new(Vec3f::new(-50.0, 25.0, -100.0), 8.0)));
-    scene.add_obj(TraceableObj::TriangleObj(Triangle::new(
-        Vec3f::new(-10.0, -10.0, -10.0),
-        Vec3f::new(-50.0, -50.0, -50.0),
-        Vec3f::new(50.0, 50.0, -100.0),
+    scene.add_obj(Box::new(Sphere::new(Vec3f::new(10.0, 10.0, -100.0), 10.0)));
+    scene.add_obj(Box::new(Sphere::new(Vec3f::new(-10.0, -10.0, -100.0), 10.0)));
+    scene.add_obj(Box::new(Sphere::new(Vec3f::new(0.0, 0.0, -50.0), 5.0)));
+    scene.add_obj(Box::new(Sphere::new(Vec3f::new(-50.0, 25.0, -100.0), 8.0)));
+    scene.add_obj(Box::new(Sphere::new(Vec3f::new(50.0, -25.0, -100.0), 7.0)));
+    scene.add_obj(Box::new(Triangle::new(
+        Vec3f::new(0.0, 10.0, -70.0),
+        Vec3f::new(-10.0, 15.0, -50.0),
+        Vec3f::new(2.0, -10.0, -100.0),
     )));
+    scene.add_obj(Box::new(Triangle::new(
+        Vec3f::new(0.0, 10.0, -70.0),
+        Vec3f::new(2.0, -10.0, -100.0),
+        Vec3f::new(10.0, 15.0, -50.0),
+    )));
+    scene.add_obj(Box::new(Triangle::new(
+        Vec3f::new(10.0, 15.0, -50.0),
+        Vec3f::new(-10.0, 15.0, -50.0),
+        Vec3f::new(0.0, 10.0, -70.0),
+    )));
+
     
     scene.lights.push(Light::new(Vec3f::new(-50.0, -50.0, -20.0), 1.0));
     scene.lights.push(Light::new(Vec3f::new(50.0, -50.0, -20.0), 1.0));
