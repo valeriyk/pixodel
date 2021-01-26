@@ -22,7 +22,20 @@ pub mod math {
 		pub fn normalize(&self) -> Self {
 			let length: f32 = (*self * *self).sqrt();
 			let length_inverted = 1.0 / length;
-			Self::new(self.x * length_inverted, self.y * length_inverted, self.z * length_inverted)
+			Self {
+				x: self.x * length_inverted,
+				y: self.y * length_inverted,
+				z: self.z * length_inverted,
+			}
+		}
+		
+		/// Cross product
+		pub fn crossprod(&self, other: &Self) -> Self {
+			Self {
+				x: self.y * other.z - self.z * other.y,
+				y: self.z * other.x - self.x * other.z,
+				z: self.x * other.y - self.y * other.x,
+			}
 		}
 	}
 	
@@ -50,6 +63,7 @@ pub mod math {
 		}
 	}
 	
+	/// Dot product
 	impl core::ops::Mul<Vec3f> for Vec3f {
 		type Output = f32;
 		
@@ -57,6 +71,19 @@ pub mod math {
 			self.x * other.x + self.y * other.y + self.z * other.z
 		}
 	}
+	
+	// /// Cross product
+	// impl core::ops::Mul<Vec3f> for Vec3f {
+	// 	type Output = Vec3f;
+	//
+	// 	fn mul(self, other: Self) -> Self::Output {
+	// 		Vec3f::new{
+	// 			x: self.y * other.z - self.z * other.y,
+	// 			y: self.z * other.x - self.x * other.z,
+	// 			z: self.x * other.y - self.y * other.x,
+	// 		}
+	// 	}
+	// }
 	
 	impl core::ops::Mul<f32> for Vec3f {
 		type Output = Self;
