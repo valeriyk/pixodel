@@ -3,7 +3,7 @@ pub mod scene {
 
     pub struct Scene {
         pub lights: Vec<Light>,
-        pub objects: Vec<Box<Traceable>>,
+        pub objects: Vec<Box<dyn Traceable>>,
     }
 
     impl Scene {
@@ -14,7 +14,7 @@ pub mod scene {
             }
         }
 
-        pub fn add_obj(&mut self, obj: Box<Traceable>) {
+        pub fn add_obj(&mut self, obj: Box<dyn Traceable>) {
             self.objects.push(obj);
         }
 

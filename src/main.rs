@@ -195,9 +195,10 @@ fn main() {
         Vec3f::new(0.0, 10.0, -70.0),
     )));
 
-    scene.add_light(Light::new(Vec3f::new(-50.0, -50.0, -20.0), 1.0));
-    scene.add_light(Light::new(Vec3f::new(50.0, -50.0, -20.0), 1.0));
-    scene.add_light(Light::new(Vec3f::new(0.0, -200.0, -50.0), 1.0));
+    scene.add_light(Light::new(Vec3f::new(-50.0, -50.0, -100.0), 1.0));
+    scene.add_light(Light::new(Vec3f::new(50.0, -50.0, -100.0), 1.0));
+    scene.add_light(Light::new(Vec3f::new(0.0, -200.0, -1000.0), 1.0));
+    scene.add_light(Light::new(Vec3f::new(0.0, 200.0, -30.0), 1.0));
 
     let scene_glob = Arc::new(scene);
 
