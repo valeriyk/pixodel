@@ -29,9 +29,13 @@ const TILE_WIDTH: u32 = 100;
 const TILE_HEIGHT: u32 = TILE_WIDTH;
 
 pub trait Traceable: Sync + Send {
-    fn is_intersected_by(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> (bool, f32);
+    fn get_distance_to(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> Option<f32>;
     fn get_normal(&self, surface_pt: Vec3f) -> Vec3f;
 }
+
+// pub trait IntoPrimitives: Sync + Send {
+//     fn next_primitive(&self) -> dyn Traceable;
+// }
 
 fn get_phong_illumination(
     surface_pt: Vec3f,
@@ -75,21 +79,39 @@ fn cast_ray(ray_orig: Vec3f, ray_dir: Vec3f, scene: &Scene) -> u8 {
     let mut color = 30u8;
 
     for obj in &scene.objects {
-        let (does_intersect, distance_to_obj) = obj.is_intersected_by(ray_orig, ray_dir);
-        if does_intersect == true && distance_to_obj < distance_to_nearest_obj {
-            distance_to_nearest_obj = distance_to_obj;
-            let surface_pt: Vec3f = ray_dir * distance_to_obj;
-            let norm_to_surface: Vec3f = obj.get_normal(surface_pt);
-            let mut illumination =
-                get_phong_illumination(surface_pt, ray_orig, norm_to_surface, &scene.lights);
-            if illumination > 1.0 {
-                illumination = 1.0
+        for primitive in obj.iter() {
+            let distance_to_obj = primitive.get_distance_to(ray_orig, ray_dir);
+            //if does_intersect == true && distance_to_obj < distance_to_nearest_obj {
+            if distance_to_obj == None {
+                continue
+            } else if distance_to_obj.unwrap() < distance_to_nearest_obj {
+                distance_to_nearest_obj = distance_to_obj.unwrap();
+                let surface_pt: Vec3f = ray_dir * distance_to_obj.unwrap();
+                let norm_to_surface: Vec3f = primitive.get_normal(surface_pt);
+                let mut illumination =
+                    get_phong_illumination(surface_pt, ray_orig, norm_to_surface, &scene.lights);
+                if illumination > 1.0 {
+                    illumination = 1.0
+                }
+                color = (illumination * u8::MAX as f32) as u8;
             }
-            color = (illumination * u8::MAX as f32) as u8;
         }
     }
     color
 }
+
+// fn cast_ray_v3(ray_orig: Vec3f, ray_dir: Vec3f, scene: &Scene) -> u8 {
+//     let mut distance_to_nearest_obj = f32::MAX;
+//     let mut color = 30u8;
+//
+//     // &scene.objects
+//     //     .iter()
+//     //     .get_primitives()
+//     //     .is_intersected_by()
+//     //     .filter()
+//
+//     color
+// }
 
 fn slv_thread_proc(slave_idx: u32, num_slaves: u32, tx: mpsc::Sender<TileMsg>, scene: Arc<Scene>) {
     let layout = TilesLayout::new(FRAME_WIDTH, FRAME_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
@@ -164,43 +186,70 @@ fn fbuf_thread_proc(rx: mpsc::Receiver<TileMsg>) {
     }
 }
 
+//use std::io::Read;
+//use std::fs::File;
+//use wavefront_obj::obj::{self, ObjSet};
+
+// fn wavefront_obj_reader(path: &str) -> ObjSet {
+//     let file_content = {
+//         let mut f = File::open(path).unwrap();
+//         let mut content = String::new();
+//         f.read_to_string(&mut content);
+//         content
+//     };
+//
+//     obj::parse(file_content).unwrap()
+// }
+
+
+
+// impl IntoTraceablePrimitivies for ObjSetWrapper {
+//     fn new() ->
+// }
+
+
+fn create_scene() -> Scene {
+    let mut scene = Scene::new();
+    
+    // scene.add_obj(Box::new(Sphere::new(Vec3f::new(10.0, 10.0, -100.0), 10.0)));
+    // scene.add_obj(Box::new(Sphere::new(
+    //     Vec3f::new(-10.0, -10.0, -100.0),
+    //     10.0,
+    // )));
+    // scene.add_obj(Box::new(Sphere::new(Vec3f::new(0.0, 0.0, -50.0), 5.0)));
+    // scene.add_obj(Box::new(Sphere::new(Vec3f::new(-50.0, 25.0, -100.0), 8.0)));
+    // scene.add_obj(Box::new(Sphere::new(Vec3f::new(50.0, -25.0, -100.0), 7.0)));
+    // scene.add_obj(Box::new(Triangle::new(
+    //     Vec3f::new(0.0, 10.0, -70.0),
+    //     Vec3f::new(-10.0, 15.0, -50.0),
+    //     Vec3f::new(2.0, -10.0, -100.0),
+    // )));
+    // scene.add_obj(Box::new(Triangle::new(
+    //     Vec3f::new(0.0, 10.0, -70.0),
+    //     Vec3f::new(2.0, -10.0, -100.0),
+    //     Vec3f::new(10.0, 15.0, -50.0),
+    // )));
+    // scene.add_obj(Box::new(Triangle::new(
+    //     Vec3f::new(10.0, 15.0, -50.0),
+    //     Vec3f::new(-10.0, 15.0, -50.0),
+    //     Vec3f::new(0.0, 10.0, -70.0),
+    // )));
+    scene.add_wavefront_obj("models/cube.obj");
+    
+    scene.add_light(Light::new(Vec3f::new(-50.0, -50.0, -100.0), 1.0));
+    scene.add_light(Light::new(Vec3f::new(50.0, -50.0, -100.0), 1.0));
+    scene.add_light(Light::new(Vec3f::new(0.0, -200.0, -1000.0), 1.0));
+    scene.add_light(Light::new(Vec3f::new(0.0, 200.0, -30.0), 1.0));
+    
+    scene
+}
+
 fn main() {
     let mut thread_handles = vec![];
 
     let (tx, rx) = mpsc::channel();
 
-    let mut scene = Scene::new();
-
-    scene.add_obj(Box::new(Sphere::new(Vec3f::new(10.0, 10.0, -100.0), 10.0)));
-    scene.add_obj(Box::new(Sphere::new(
-        Vec3f::new(-10.0, -10.0, -100.0),
-        10.0,
-    )));
-    scene.add_obj(Box::new(Sphere::new(Vec3f::new(0.0, 0.0, -50.0), 5.0)));
-    scene.add_obj(Box::new(Sphere::new(Vec3f::new(-50.0, 25.0, -100.0), 8.0)));
-    scene.add_obj(Box::new(Sphere::new(Vec3f::new(50.0, -25.0, -100.0), 7.0)));
-    scene.add_obj(Box::new(Triangle::new(
-        Vec3f::new(0.0, 10.0, -70.0),
-        Vec3f::new(-10.0, 15.0, -50.0),
-        Vec3f::new(2.0, -10.0, -100.0),
-    )));
-    scene.add_obj(Box::new(Triangle::new(
-        Vec3f::new(0.0, 10.0, -70.0),
-        Vec3f::new(2.0, -10.0, -100.0),
-        Vec3f::new(10.0, 15.0, -50.0),
-    )));
-    scene.add_obj(Box::new(Triangle::new(
-        Vec3f::new(10.0, 15.0, -50.0),
-        Vec3f::new(-10.0, 15.0, -50.0),
-        Vec3f::new(0.0, 10.0, -70.0),
-    )));
-
-    scene.add_light(Light::new(Vec3f::new(-50.0, -50.0, -100.0), 1.0));
-    scene.add_light(Light::new(Vec3f::new(50.0, -50.0, -100.0), 1.0));
-    scene.add_light(Light::new(Vec3f::new(0.0, -200.0, -1000.0), 1.0));
-    scene.add_light(Light::new(Vec3f::new(0.0, 200.0, -30.0), 1.0));
-
-    let scene_glob = Arc::new(scene);
+    let scene_glob = Arc::new(create_scene());
 
     for i in 0..NUM_SLAVES {
         let tx_slv_to_fbuf = mpsc::Sender::clone(&tx);
@@ -224,4 +273,8 @@ fn main() {
     for handle in thread_handles {
         handle.join().unwrap();
     }
+    
+    //wavefront_obj_reader("/home/valeriyk/proj/pixodel/african_head.obj");
+    //wavefront_obj_reader("/home/valeriyk/proj/pixodel/floor.obj");
+    //wavefront_obj_reader("models/cube.obj");
 }

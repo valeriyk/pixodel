@@ -8,7 +8,7 @@ pub mod triangle {
         normal: Vec3f,
     }
 
-    fn moller_trumbore(triangle: &Triangle, ray_origin: Vec3f, ray_dir: Vec3f) -> (bool, f32) {
+    fn moller_trumbore(triangle: &Triangle, ray_origin: Vec3f, ray_dir: Vec3f) -> Option<f32> {
         const EPSILON: f32 = 0.001;
         let v0v1 = triangle.v[1] - triangle.v[0];
         let v0v2 = triangle.v[2] - triangle.v[0];
@@ -16,7 +16,7 @@ pub mod triangle {
         let det = v0v1 * pvec;
 
         if det < EPSILON {
-            return (false, f32::MAX);
+            return None;
         }
 
         let inv_det = 1.0 / det;
@@ -24,17 +24,17 @@ pub mod triangle {
         let u = tvec * pvec * inv_det;
 
         if u < 0.0 || u > 1.0 {
-            return (false, f32::MAX);
+            return None;
         }
 
         let qvec = tvec.crossprod(&v0v1);
         let v = ray_dir * qvec * inv_det;
         if v < 0.0 || u + v > 1.0 {
-            return (false, f32::MAX);
+            return None;
         }
 
         let t = v0v2 * qvec * inv_det;
-        (true, t)
+        Some(t)
     }
 
     impl Triangle {
@@ -50,7 +50,7 @@ pub mod triangle {
     }
 
     impl Traceable for Triangle {
-        fn is_intersected_by(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> (bool, f32) {
+        fn get_distance_to(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> Option<f32> {
             moller_trumbore(self, ray_origin, ray_dir)
         }
         fn get_normal(&self, surface_pt: Vec3f) -> Vec3f {

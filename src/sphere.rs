@@ -15,22 +15,22 @@ pub mod sphere {
     }
 
     impl Traceable for Sphere {
-        fn is_intersected_by(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> (bool, f32) {
+        fn get_distance_to(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> Option<f32> {
             let l = self.center - ray_origin;
             let tca = l * ray_dir;
             let d_squared = l * l - tca * tca;
             if d_squared > (self.radius * self.radius) {
-                return (false, f32::MAX);
+                return None;
             }
             let thc = (self.radius * self.radius - d_squared).sqrt();
             let t0 = tca - thc;
             let t1 = tca + thc;
             if t0 >= 0.0 {
-                (true, t0)
+                Some(t0)
             } else if t0 < 0.0 && t1 >= 0.0 {
-                (true, t1)
+                Some(t1)
             } else {
-                (false, f32::MAX)
+                None
             }
         }
 
