@@ -1,41 +1,30 @@
 extern crate image;
 
+mod img_tiles;
+mod light;
+mod math;
+mod primitives;
+mod scene;
+
 use std::process::Output;
 use std::sync::{mpsc, Arc};
 use std::thread;
 
 use image::{GenericImage, ImageBuffer};
 
-use crate::img_tiles::img_tiles::{Tile, TileGenerator, TilesLayout};
-use crate::light::light::Light;
-use crate::math::math::Vec3f;
-use crate::scene::scene::Scene;
-use crate::sphere::sphere::Sphere;
-use crate::triangle::triangle::Triangle;
+use crate::img_tiles::{Tile, TileGenerator, TilesLayout};
+use crate::light::Light;
+use crate::math::Vec3f;
+use crate::primitives::Traceable;
+use crate::scene::Scene;
 
-mod img_tiles;
-mod light;
-mod math;
-mod scene;
-mod sphere;
-mod triangle;
+const NUM_SLAVES: u32 = 8;
 
-const NUM_SLAVES: u32 = 1;
+const FRAME_WIDTH: u32 = 300;
+const FRAME_HEIGHT: u32 = 400;
 
-const FRAME_WIDTH: u32 = 400;
-const FRAME_HEIGHT: u32 = 200;
-
-const TILE_WIDTH: u32 = 100;
+const TILE_WIDTH: u32 = 20;
 const TILE_HEIGHT: u32 = TILE_WIDTH;
-
-pub trait Traceable: Sync + Send {
-    fn get_distance_to(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> Option<f32>;
-    fn get_normal(&self, surface_pt: Vec3f) -> Vec3f;
-}
-
-// pub trait IntoPrimitives: Sync + Send {
-//     fn next_primitive(&self) -> dyn Traceable;
-// }
 
 fn get_phong_illumination(
     surface_pt: Vec3f,
@@ -44,7 +33,7 @@ fn get_phong_illumination(
     lights: &Vec<Light>,
 ) -> f32 {
     let shininess: f32 = 20.0;
-    let diffuse_reflection: f32 = 0.3;
+    let diffuse_reflection: f32 = 1.0;
     let specular_reflection: f32 = 0.5;
     let ambient_reflection: f32 = 0.05;
 
@@ -78,40 +67,28 @@ fn cast_ray(ray_orig: Vec3f, ray_dir: Vec3f, scene: &Scene) -> u8 {
     let mut distance_to_nearest_obj = f32::MAX;
     let mut color = 30u8;
 
-    for obj in &scene.objects {
-        for primitive in obj.iter() {
-            let distance_to_obj = primitive.get_distance_to(ray_orig, ray_dir);
-            //if does_intersect == true && distance_to_obj < distance_to_nearest_obj {
-            if distance_to_obj == None {
-                continue
-            } else if distance_to_obj.unwrap() < distance_to_nearest_obj {
-                distance_to_nearest_obj = distance_to_obj.unwrap();
-                let surface_pt: Vec3f = ray_dir * distance_to_obj.unwrap();
-                let norm_to_surface: Vec3f = primitive.get_normal(surface_pt);
-                let mut illumination =
-                    get_phong_illumination(surface_pt, ray_orig, norm_to_surface, &scene.lights);
-                if illumination > 1.0 {
-                    illumination = 1.0
-                }
-                color = (illumination * u8::MAX as f32) as u8;
+    //for obj in &scene.objects {
+    for triangle in &scene.triangles {
+        //    for primitive in obj.iter() {
+        let distance_to_obj = triangle.get_distance_to(ray_orig, ray_dir);
+        //if does_intersect == true && distance_to_obj < distance_to_nearest_obj {
+        if distance_to_obj == None {
+            continue;
+        } else if distance_to_obj.unwrap() < distance_to_nearest_obj {
+            distance_to_nearest_obj = distance_to_obj.unwrap();
+            let surface_pt: Vec3f = ray_dir * distance_to_obj.unwrap();
+            let norm_to_surface: Vec3f = triangle.get_normal(surface_pt);
+            let mut illumination =
+                get_phong_illumination(surface_pt, ray_orig, norm_to_surface, &scene.lights);
+            if illumination > 1.0 {
+                illumination = 1.0
             }
+            color = (illumination * u8::MAX as f32) as u8;
         }
+        // }
     }
     color
 }
-
-// fn cast_ray_v3(ray_orig: Vec3f, ray_dir: Vec3f, scene: &Scene) -> u8 {
-//     let mut distance_to_nearest_obj = f32::MAX;
-//     let mut color = 30u8;
-//
-//     // &scene.objects
-//     //     .iter()
-//     //     .get_primitives()
-//     //     .is_intersected_by()
-//     //     .filter()
-//
-//     color
-// }
 
 fn slv_thread_proc(slave_idx: u32, num_slaves: u32, tx: mpsc::Sender<TileMsg>, scene: Arc<Scene>) {
     let layout = TilesLayout::new(FRAME_WIDTH, FRAME_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
@@ -180,6 +157,7 @@ fn fbuf_thread_proc(rx: mpsc::Receiver<TileMsg>) {
         }
 
         if num_slaves_finished == NUM_SLAVES {
+            image::imageops::flip_vertical_in_place(&mut img);
             img.save("myimg.png").unwrap();
             break;
         }
@@ -201,16 +179,13 @@ fn fbuf_thread_proc(rx: mpsc::Receiver<TileMsg>) {
 //     obj::parse(file_content).unwrap()
 // }
 
-
-
 // impl IntoTraceablePrimitivies for ObjSetWrapper {
 //     fn new() ->
 // }
 
-
 fn create_scene() -> Scene {
     let mut scene = Scene::new();
-    
+
     // scene.add_obj(Box::new(Sphere::new(Vec3f::new(10.0, 10.0, -100.0), 10.0)));
     // scene.add_obj(Box::new(Sphere::new(
     //     Vec3f::new(-10.0, -10.0, -100.0),
@@ -234,13 +209,14 @@ fn create_scene() -> Scene {
     //     Vec3f::new(-10.0, 15.0, -50.0),
     //     Vec3f::new(0.0, 10.0, -70.0),
     // )));
-    scene.add_wavefront_obj("models/cube.obj");
-    
-    scene.add_light(Light::new(Vec3f::new(-50.0, -50.0, -100.0), 1.0));
-    scene.add_light(Light::new(Vec3f::new(50.0, -50.0, -100.0), 1.0));
-    scene.add_light(Light::new(Vec3f::new(0.0, -200.0, -1000.0), 1.0));
-    scene.add_light(Light::new(Vec3f::new(0.0, 200.0, -30.0), 1.0));
-    
+    //scene.add_wavefront_obj("models/cube2.obj");
+    scene.add_wavefront_obj("models/african_head.obj");
+
+    //scene.add_light(Light::new(Vec3f::new(-50.0, -50.0, -10.0), 1.0));
+    //scene.add_light(Light::new(Vec3f::new(50.0, -50.0, -10.0), 1.0));
+    //scene.add_light(Light::new(Vec3f::new(0.0, -200.0, -1000.0), 1.0));
+    scene.add_light(Light::new(Vec3f::new(0.0, 200.0, 20.0), 1.0));
+
     scene
 }
 
@@ -273,7 +249,7 @@ fn main() {
     for handle in thread_handles {
         handle.join().unwrap();
     }
-    
+
     //wavefront_obj_reader("/home/valeriyk/proj/pixodel/african_head.obj");
     //wavefront_obj_reader("/home/valeriyk/proj/pixodel/floor.obj");
     //wavefront_obj_reader("models/cube.obj");

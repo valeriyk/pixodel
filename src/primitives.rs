@@ -1,27 +1,9 @@
-/*pub mod traceable {
-	
-	use crate::Traceable;
-	
-	struct Sphere {
-		center: Vec3f,
-		radius: f32,
-	}
-	
-	pub struct Triangle {
-		v: [Vec3f; 3],
-		normal: Vec3f,
-	}
-	
-	pub enum Primitive {
-		Sphere {
-			center: Vec3f,
-			radius: f32,
-		},
-		Triangle {
-			v: [Vec3f; 3],
-			normal: Vec3f,
-		},
-	}
-	
-	
-}*/
+pub mod sphere;
+pub mod triangle;
+
+use crate::math::Vec3f;
+
+pub trait Traceable: Sync + Send {
+    fn get_distance_to(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> Option<f32>;
+    fn get_normal(&self, surface_pt: Vec3f) -> Vec3f;
+}
