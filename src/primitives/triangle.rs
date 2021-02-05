@@ -7,7 +7,7 @@ pub struct Triangle {
     normal: Vec3f,
 }
 
-fn moller_trumbore(triangle: &Triangle, ray_origin: Vec3f, ray_dir: Vec3f) -> Option<f32> {
+fn moller_trumbore(triangle: &Triangle, ray_origin: Vec3f, ray_dir: Vec3f) -> Option<(f32, f32, f32)> {
     const EPSILON: f32 = 0.001;
     let v0v1 = triangle.v[1] - triangle.v[0];
     let v0v2 = triangle.v[2] - triangle.v[0];
@@ -33,7 +33,7 @@ fn moller_trumbore(triangle: &Triangle, ray_origin: Vec3f, ray_dir: Vec3f) -> Op
     }
 
     let t = v0v2 * qvec * inv_det;
-    Some(t)
+    Some((t, u, v))
 }
 
 impl Triangle {
@@ -46,12 +46,25 @@ impl Triangle {
             normal,
         }
     }
+    
+    fn get_uv(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> Option<(f32, f32)> {
+        if let Some((_, u, v)) = moller_trumbore(self, ray_origin, ray_dir) {
+            Some((u, v))
+        } else {
+            None
+        }
+    }
 }
 
 impl Traceable for Triangle {
     fn get_distance_to(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> Option<f32> {
-        moller_trumbore(self, ray_origin, ray_dir)
+        if let Some((t, _, _)) = moller_trumbore(self, ray_origin, ray_dir) {
+            Some(t)
+        } else {
+            None
+        }
     }
+    
     fn get_normal(&self, surface_pt: Vec3f) -> Vec3f {
         // Vec3f::new(0.0, 0.0, 0.0)
         self.normal

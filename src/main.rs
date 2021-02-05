@@ -65,29 +65,33 @@ struct TileMsg {
 
 fn cast_ray(ray_orig: Vec3f, ray_dir: Vec3f, scene: &Scene) -> u8 {
     let mut distance_to_nearest_obj = f32::MAX;
-    let mut color = 30u8;
+    let mut nearest_obj_idx: Option<usize> = None;
+    
+    const BG_COLOR: u8 = 30u8;
 
-    //for obj in &scene.objects {
-    for triangle in &scene.triangles {
-        //    for primitive in obj.iter() {
+    for (idx, triangle) in scene.triangles.iter().enumerate() {
         let distance_to_obj = triangle.get_distance_to(ray_orig, ray_dir);
-        //if does_intersect == true && distance_to_obj < distance_to_nearest_obj {
-        if distance_to_obj == None {
-            continue;
-        } else if distance_to_obj.unwrap() < distance_to_nearest_obj {
-            distance_to_nearest_obj = distance_to_obj.unwrap();
-            let surface_pt: Vec3f = ray_dir * distance_to_obj.unwrap();
-            let norm_to_surface: Vec3f = triangle.get_normal(surface_pt);
-            let mut illumination =
-                get_phong_illumination(surface_pt, ray_orig, norm_to_surface, &scene.lights);
-            if illumination > 1.0 {
-                illumination = 1.0
-            }
-            color = (illumination * u8::MAX as f32) as u8;
+        match distance_to_obj {
+            Some(dist) if dist < distance_to_nearest_obj => {
+                distance_to_nearest_obj = dist;
+                nearest_obj_idx = Some(idx);
+            },
+            _ => (),
         }
-        // }
     }
-    color
+    
+    if let Some(idx) = nearest_obj_idx {
+        let surface_pt: Vec3f = ray_dir * distance_to_nearest_obj;
+        let norm_to_surface: Vec3f = scene.triangles[idx].get_normal(surface_pt);
+        let mut illumination =
+            get_phong_illumination(surface_pt, ray_orig, norm_to_surface, &scene.lights);
+        if illumination > 1.0 {
+            illumination = 1.0
+        }
+        (illumination * u8::MAX as f32) as u8
+    } else {
+        BG_COLOR
+    }
 }
 
 fn slv_thread_proc(slave_idx: u32, num_slaves: u32, tx: mpsc::Sender<TileMsg>, scene: Arc<Scene>) {
@@ -179,10 +183,6 @@ fn fbuf_thread_proc(rx: mpsc::Receiver<TileMsg>) {
 //     obj::parse(file_content).unwrap()
 // }
 
-// impl IntoTraceablePrimitivies for ObjSetWrapper {
-//     fn new() ->
-// }
-
 fn create_scene() -> Scene {
     let mut scene = Scene::new();
 
@@ -249,8 +249,4 @@ fn main() {
     for handle in thread_handles {
         handle.join().unwrap();
     }
-
-    //wavefront_obj_reader("/home/valeriyk/proj/pixodel/african_head.obj");
-    //wavefront_obj_reader("/home/valeriyk/proj/pixodel/floor.obj");
-    //wavefront_obj_reader("models/cube.obj");
 }
