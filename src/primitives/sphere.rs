@@ -1,4 +1,4 @@
-use crate::math::Vec3f;
+/*use crate::math::Vec3f;
 use crate::primitives::Traceable;
 
 #[derive(Copy, Clone)]
@@ -37,3 +37,4 @@ impl Traceable for Sphere {
         (surface_pt - self.center).normalize()
     }
 }
+*/

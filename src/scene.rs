@@ -1,6 +1,6 @@
 //use crate::{Light, Traceable};
 use crate::light::Light;
-use crate::math::{Mat4f, Vec3f};
+use crate::math::{Mat4f, Point3d, Vector3d};
 use crate::primitives::triangle::Triangle;
 use std::fs::File;
 use std::io::Read;
@@ -11,8 +11,8 @@ pub struct Scene {
     //pub objects: Vec<Box<dyn Traceable>>,
     pub objects: Vec<Object>,
     pub triangles: Vec<Triangle>,
-    pub vtx_normals: Vec<Vec3f>,
-    pub txt_coords: Vec<Vec3f>,
+    pub vtx_normals: Vec<Vector3d>,
+    pub txt_coords: Vec<Point3d>,
 }
 
 // pub struct ObjSetWrapper {
@@ -25,18 +25,18 @@ pub struct Scene {
 
 pub struct Object {
     model: ObjSet,
-    scale: Vec3f,
-    rotation: Vec3f,
-    translation: Vec3f,
+    scale: [f32; 3],
+    rotation: [f32; 3],
+    translation: [f32; 3],
     model_to_world: Mat4f,
     world_to_model: Mat4f,
 }
 
 #[repr(C, align(32))]
 struct VtxAttr {
-    vtx_coords: Vec3f,
-    norm_coords: Vec3f,
-    txt_coords: Vec3f,
+    vtx_coords: Point3d,
+    norm_coords: Vector3d,
+    txt_coords: Point3d,
 }
 
 impl Scene {
@@ -130,9 +130,9 @@ impl<'a> Iterator for IterObjSet<'a> {
         }
 
         Some(Triangle::new(
-            Vec3f::new(a.x as f32 * 10.0, a.y as f32 * 10.0, a.z as f32 - 30.0),
-            Vec3f::new(b.x as f32 * 10.0, b.y as f32 * 10.0, b.z as f32 - 30.0),
-            Vec3f::new(c.x as f32 * 10.0, c.y as f32 * 10.0, c.z as f32 - 30.0),
+            Point3d::new(a.x as f32 * 10.0, a.y as f32 * 10.0, a.z as f32 - 30.0),
+            Point3d::new(b.x as f32 * 10.0, b.y as f32 * 10.0, b.z as f32 - 30.0),
+            Point3d::new(c.x as f32 * 10.0, c.y as f32 * 10.0, c.z as f32 - 30.0),
         ))
     }
 }
@@ -156,9 +156,9 @@ impl Object {
     pub fn new(model: ObjSet) -> Self {
         Object {
             model,
-            scale: Vec3f::new(1.0, 1.0, 1.0),
-            rotation: Vec3f::new(0.0, 0.0, 0.0),
-            translation:  Vec3f::new(0.0, 0.0, 0.0),
+            scale: [1.0, 1.0, 1.0],
+            rotation: [0.0, 0.0, 0.0],
+            translation: [0.0, 0.0, 0.0],
             model_to_world: Mat4f::new(),
             world_to_model: Mat4f::new(),
         }

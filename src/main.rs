@@ -13,7 +13,7 @@ use image::{GenericImage, ImageBuffer};
 
 use crate::img_tiles::{Tile, TileGenerator, TilesLayout};
 use crate::light::Light;
-use crate::math::Vec3f;
+use crate::math::{Point3d, Vector3d};
 use crate::primitives::Traceable;
 use crate::scene::Scene;
 
@@ -26,9 +26,9 @@ const TILE_WIDTH: u32 = 20;
 const TILE_HEIGHT: u32 = TILE_WIDTH;
 
 fn get_phong_illumination(
-    surface_pt: Vec3f,
-    camera_pt: Vec3f,
-    surface_normal: Vec3f,
+    surface_pt: Point3d,
+    camera_pt: Point3d,
+    surface_normal: Vector3d,
     lights: &Vec<Light>,
 ) -> f32 {
     let shininess: f32 = 20.0;
@@ -36,13 +36,13 @@ fn get_phong_illumination(
     let specular_reflection: f32 = 0.5;
     let ambient_reflection: f32 = 0.05;
 
-    let surface_to_camera: Vec3f = (camera_pt - surface_pt).normalize();
+    let surface_to_camera = (camera_pt - surface_pt).normalize();
     let mut illumination = ambient_reflection;
     for l in lights {
-        let surface_to_light: Vec3f = (l.position - surface_pt).normalize();
+        let surface_to_light = (l.position - surface_pt).normalize();
         let diffuse_factor = surface_to_light * surface_normal; // cos of the light to normal angle
         if diffuse_factor > 0.0 {
-            let light_reflected_off_surface: Vec3f =
+            let light_reflected_off_surface =
                 surface_normal * diffuse_factor * 2.0 - surface_to_light;
             let specular_factor = light_reflected_off_surface * surface_to_camera; // cos of the camera to reflected ray angle
             let mut specular_factor = specular_factor.powf(shininess);
@@ -62,7 +62,7 @@ struct TileMsg {
     is_last: bool,
 }
 
-fn cast_ray(ray_orig: Vec3f, ray_dir: Vec3f, scene: &Scene) -> u8 {
+fn cast_ray(ray_orig: Point3d, ray_dir: Vector3d, scene: &Scene) -> u8 {
     let mut distance_to_nearest_obj = f32::MAX;
     let mut nearest_obj_idx: Option<usize> = None;
     
@@ -80,8 +80,8 @@ fn cast_ray(ray_orig: Vec3f, ray_dir: Vec3f, scene: &Scene) -> u8 {
     }
     
     if let Some(idx) = nearest_obj_idx {
-        let surface_pt: Vec3f = ray_dir * distance_to_nearest_obj;
-        let norm_to_surface: Vec3f = scene.triangles[idx].get_normal(surface_pt);
+        let surface_pt = (ray_orig + ray_dir) * distance_to_nearest_obj;
+        let norm_to_surface: Vector3d = scene.triangles[idx].get_normal(surface_pt);
         let mut illumination =
             get_phong_illumination(surface_pt, ray_orig, norm_to_surface, &scene.lights);
         if illumination > 1.0 {
@@ -110,9 +110,9 @@ fn slv_thread_proc(slave_idx: u32, num_slaves: u32, tx: mpsc::Sender<TileMsg>, s
                 let ray_y: f32 =
                     ((y as f32 * 2.0) / layout.frame_height as f32 - 1.0) * fov_scaling_factor;
                 let ray_z = -1.0;
-                let ray_dir = Vec3f::new(ray_x, ray_y, ray_z);
+                let ray_dir = Vector3d::new(ray_x, ray_y, ray_z);
 
-                let color = cast_ray(Vec3f::new(0.0, 0.0, 0.0), ray_dir.normalize(), &scene);
+                let color = cast_ray(Point3d::new(0.0, 0.0, 0.0), ray_dir.normalize(), &scene);
 
                 tile.vbuf.push(color);
                 tile.vbuf.push(u8::MIN);
@@ -214,7 +214,7 @@ fn create_scene() -> Scene {
     //scene.add_light(Light::new(Vec3f::new(-50.0, -50.0, -10.0), 1.0));
     //scene.add_light(Light::new(Vec3f::new(50.0, -50.0, -10.0), 1.0));
     //scene.add_light(Light::new(Vec3f::new(0.0, -200.0, -1000.0), 1.0));
-    scene.add_light(Light::new(Vec3f::new(0.0, 200.0, 20.0), 1.0));
+    scene.add_light(Light::new(Point3d::new(0.0, 200.0, 20.0), 1.0));
 
     scene.refresh();
     

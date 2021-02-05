@@ -1,13 +1,13 @@
 //pub mod light {
-use crate::math::Vec3f;
+use crate::math::Point3d;
 
 pub struct Light {
-    pub position: Vec3f,
+    pub position: Point3d,
     pub intensity: f32,
 }
 
 impl Light {
-    pub fn new(position: Vec3f, intensity: f32) -> Light {
+    pub fn new(position: Point3d, intensity: f32) -> Light {
         Light {
             position,
             intensity,

@@ -1,133 +1,248 @@
 #[derive(Copy, Clone)]
-pub struct Vec3f {
-    x: f32,
-    y: f32,
-    z: f32,
-}
-
-#[derive(Copy, Clone)]
-pub struct Vec4f {
+pub struct Point3d {
     x: f32,
     y: f32,
     z: f32,
     w: f32,
 }
 
-impl Vec3f {
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z }
-    }
+#[derive(Copy, Clone)]
+pub struct Vector3d {
+    x: f32,
+    y: f32,
+    z: f32,
+    w: f32,
+}
 
+impl Point3d {
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
+        Self { x, y, z, w: 1.0 }
+    }
+    
     pub fn new_zeroed(&self) -> Self {
         Self::new(0.0, 0.0, 0.0)
     }
-
+    
     pub fn normalize(&self) -> Self {
-        let length: f32 = (*self * *self).sqrt();
+        let w_inverted = 1.0 / self.w;
+        Self {
+            x: self.x * w_inverted,
+            y: self.y * w_inverted,
+            z: self.z * w_inverted,
+            w: 1.0
+        }
+    }
+}
+
+impl core::ops::Add<Point3d> for Point3d {
+    type Output = Vector3d;
+    
+    fn add(self, other: Self) -> Self::Output {
+        Self::Output {
+            x: self.x + other.x,
+            y: self.y + other.y,
+            z: self.z + other.z,
+            w: 0.0,
+        }
+    }
+}
+
+impl core::ops::Sub<Point3d> for Point3d {
+    type Output = Vector3d;
+    
+    fn sub(self, other: Self) -> Self::Output {
+        Self::Output {
+            x: self.x - other.x,
+            y: self.y - other.y,
+            z: self.z - other.z,
+            w: 0.0,
+        }
+    }
+}
+
+
+impl core::ops::Add<Vector3d> for Point3d {
+    type Output = Point3d;
+    
+    fn add(self, other: Vector3d) -> Self::Output {
+        Self::Output {
+            x: self.x + other.x,
+            y: self.y + other.y,
+            z: self.z + other.z,
+            w: self.w,
+        }
+    }
+}
+
+// impl core::ops::Sub<Vector3d> for Point3d {
+//     type Output = Point3d;
+//
+//     fn sub(self, other: Self) -> Self::Output {
+//         Self::Output {
+//             x: self.x - other.x,
+//             y: self.y - other.y,
+//             z: self.z - other.z,
+//             w: self.w,
+//         }
+//     }
+// }
+
+// /// Dot product
+// impl core::ops::Mul<Vec3f> for Point3d {
+//     type Output = f32;
+//
+//     fn mul(self, other: Self) -> Self::Output {
+//         self.x * other.x + self.y * other.y + self.z * other.z
+//     }
+// }
+
+impl core::ops::Mul<f32> for Point3d {
+    type Output = Self;
+    
+    fn mul(self, other: f32) -> Self::Output {
+        Self {
+            x: self.x * other,
+            y: self.y * other,
+            z: self.z * other,
+            w: self.w * other, // REALLY?
+        }
+    }
+}
+
+impl core::ops::Neg for Point3d {
+    type Output = Self;
+    
+    fn neg(self) -> Self::Output {
+        Self {
+            x: -self.x,
+            y: -self.y,
+            z: -self.z,
+            w: -self.w,
+        }
+    }
+}
+
+
+
+
+
+
+
+impl Vector3d {
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
+        Self { x, y, z, w: 0.0 }
+    }
+    
+    pub fn new_zeroed(&self) -> Self {
+        Self::new(0.0, 0.0, 0.0)
+    }
+    
+    pub fn normalize(&self) -> Self {
+        let length: f32 = (*self * *self).sqrt(); // W is zero, hence doesn't contribute to length at all
         let length_inverted = 1.0 / length;
         Self {
             x: self.x * length_inverted,
             y: self.y * length_inverted,
             z: self.z * length_inverted,
+            w: 0.0, // self.w is always zero, it would be zero even if I multiplied it by length_inverted
         }
     }
-
+    
     /// Cross product
     pub fn crossprod(&self, other: &Self) -> Self {
         Self {
             x: self.y * other.z - self.z * other.y,
             y: self.z * other.x - self.x * other.z,
             z: self.x * other.y - self.y * other.x,
+            w: 0.0, // TBD: no cross product in 4D? but if w is zero, we don't care?
         }
     }
 }
 
-impl core::ops::Add for Vec3f {
+impl core::ops::Add<Vector3d> for Vector3d {
     type Output = Self;
-
+    
     fn add(self, other: Self) -> Self::Output {
         Self {
             x: self.x + other.x,
             y: self.y + other.y,
             z: self.z + other.z,
+            w: 0.0, // no need to calculate, 0 + 0 is 0
         }
     }
 }
 
-impl core::ops::Sub for Vec3f {
+impl core::ops::Sub<Vector3d> for Vector3d {
     type Output = Self;
-
+    
     fn sub(self, other: Self) -> Self::Output {
         Self {
             x: self.x - other.x,
             y: self.y - other.y,
             z: self.z - other.z,
+            w: 0.0, // no need to calculate, 0 - 0 is 0
         }
     }
 }
 
-/// Dot product
-impl core::ops::Mul<Vec3f> for Vec3f {
-    type Output = f32;
+impl core::ops::Add<Point3d> for Vector3d {
+    type Output = Point3d;
+    
+    fn add(self, other: Point3d) -> Self::Output {
+        Self::Output {
+            x: self.x + other.x,
+            y: self.y + other.y,
+            z: self.z + other.z,
+            w: other.w,
+        }
+    }
+}
 
+// impl core::ops::Sub<Point3d> for Vector3d {
+//     type Output = Point3d;
+//
+//     fn sub(self, other: Self) -> Self::Output {
+//         Self::Output {
+//             x: self.x - other.x,
+//             y: self.y - other.y,
+//             z: self.z - other.z,
+//             w: -other.w, // no need to calculate, 0 - 0 is 0
+//         }
+//     }
+// }
+
+/// Dot product
+impl core::ops::Mul<Vector3d> for Vector3d {
+    type Output = f32;
+    
     fn mul(self, other: Self) -> Self::Output {
+        // self.w is zero and doesn't contribute
         self.x * other.x + self.y * other.y + self.z * other.z
     }
 }
 
-// /// Cross product
-// impl core::ops::Mul<Vec3f> for Vec3f {
-// 	type Output = Vec3f;
-//
-// 	fn mul(self, other: Self) -> Self::Output {
-// 		Vec3f::new{
-// 			x: self.y * other.z - self.z * other.y,
-// 			y: self.z * other.x - self.x * other.z,
-// 			z: self.x * other.y - self.y * other.x,
-// 		}
-// 	}
-// }
-
-impl core::ops::Mul<f32> for Vec3f {
+impl core::ops::Mul<f32> for Vector3d {
     type Output = Self;
-
+    
     fn mul(self, other: f32) -> Self::Output {
         Self {
             x: self.x * other,
             y: self.y * other,
             z: self.z * other,
+            w: 0.0, // w was zero so remains zero
         }
     }
 }
 
-impl core::ops::Neg for Vec3f {
+impl core::ops::Neg for Vector3d {
     type Output = Self;
-
+    
     fn neg(self) -> Self::Output {
         Self {
             x: -self.x,
             y: -self.y,
             z: -self.z,
+            w: -0.0, // TBD: Not sure if 0.0 or -0.0 maks more sense
         }
     }
 }
-
-/*impl Vec4f {
-    pub fn new(x: f32, y: f32, z: f32, w: f32) -> Self {
-        Self {x, y, z, w}
-    }
-
-    // pub fn normalize(&self) -> Self {
-    // 	let length: f32 = (*self * *self).sqrt();
-    // 	let length_inverted = 1.0 / length;
-    // 	Self::new(self.x * length_inverted, self.y * length_inverted, self.z * length_inverted, self.w * length_inverted)
-    // }
-}
-
-impl From<Vec3f> for Vec4f {
-    //type Output = Self;
-
-    fn from(input: Vec3f) -> Self {
-        Self::new(input.x, input.y, input.z, 1.0)
-    }
-}*/
