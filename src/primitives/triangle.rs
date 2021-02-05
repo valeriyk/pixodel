@@ -5,6 +5,7 @@ use crate::primitives::Traceable;
 pub struct Triangle {
     v: [Vec3f; 3],
     normal: Vec3f,
+    //parent: &Object,
 }
 
 fn moller_trumbore(triangle: &Triangle, ray_origin: Vec3f, ray_dir: Vec3f) -> Option<(f32, f32, f32)> {

@@ -9,24 +9,44 @@ use wavefront_obj::obj::{self, ObjSet};
 pub struct Scene {
     pub lights: Vec<Light>,
     //pub objects: Vec<Box<dyn Traceable>>,
-    //pub objects: Vec<ObjSetWrapper>,
+    pub objects: Vec<Object>,
     pub triangles: Vec<Triangle>,
+    pub vtx_normals: Vec<Vec3f>,
+    pub txt_coords: Vec<Vec3f>,
 }
 
-pub struct ObjSetWrapper {
-    pub objset: ObjSet,
-    // scale: Vec3f,
-    // rotation: Vec3f,
-    // translation: Vec3f,
-    // model_mat: Mat4f,
+// pub struct ObjSetWrapper {
+//     pub objset: ObjSet,
+//     // scale: Vec3f,
+//     // rotation: Vec3f,
+//     // translation: Vec3f,
+//     // model_mat: Mat4f,
+// }
+
+pub struct Object {
+    model: ObjSet,
+    scale: Vec3f,
+    rotation: Vec3f,
+    translation: Vec3f,
+    model_to_world: Mat4f,
+    world_to_model: Mat4f,
+}
+
+#[repr(C, align(32))]
+struct VtxAttr {
+    vtx_coords: Vec3f,
+    norm_coords: Vec3f,
+    txt_coords: Vec3f,
 }
 
 impl Scene {
     pub fn new() -> Self {
         Scene {
             lights: Vec::new(),
-            //objects: Vec::new(),
+            objects: Vec::new(),
             triangles: Vec::new(),
+            vtx_normals: Vec::new(),
+            txt_coords: Vec::new(),
         }
     }
 
@@ -38,9 +58,14 @@ impl Scene {
             content
         };
         let model = obj::parse(file_content).unwrap();
-        let model = ObjSetWrapper::new(model);
-        for triangle in model.iter() {
-            self.triangles.push(triangle);
+        self.objects.push(Object::new(model));
+    }
+    
+    pub fn refresh(&mut self) {
+        for obj in &self.objects {
+            for triangle in obj.iter() {
+                self.triangles.push(triangle);
+            }
         }
     }
 
@@ -52,6 +77,8 @@ impl Scene {
         self.lights.push(light);
     }
 }
+
+
 
 // impl Traceable for ObjSet {
 //     fn get_distance_to(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> Option<f32> {
@@ -110,14 +137,36 @@ impl<'a> Iterator for IterObjSet<'a> {
     }
 }
 
-impl ObjSetWrapper {
-    pub fn new(model: ObjSet) -> Self {
-        ObjSetWrapper { objset: model }
-    }
+// impl ObjSetWrapper {
+//     pub fn new(model: ObjSet) -> Self {
+//         ObjSetWrapper { objset: model }
+//     }
+//
+//     pub fn iter(&self) -> IterObjSet {
+//         IterObjSet {
+//             objset: &self.objset,
+//             oidx: 0,
+//             gidx: 0,
+//             sidx: 0,
+//         }
+//     }
+// }
 
+impl Object {
+    pub fn new(model: ObjSet) -> Self {
+        Object {
+            model,
+            scale: Vec3f::new(1.0, 1.0, 1.0),
+            rotation: Vec3f::new(0.0, 0.0, 0.0),
+            translation:  Vec3f::new(0.0, 0.0, 0.0),
+            model_to_world: Mat4f::new(),
+            world_to_model: Mat4f::new(),
+        }
+    }
+    
     pub fn iter(&self) -> IterObjSet {
         IterObjSet {
-            objset: &self.objset,
+            objset: &self.model,
             oidx: 0,
             gidx: 0,
             sidx: 0,

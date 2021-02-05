@@ -6,7 +6,6 @@ mod math;
 mod primitives;
 mod scene;
 
-use std::process::Output;
 use std::sync::{mpsc, Arc};
 use std::thread;
 
@@ -217,6 +216,8 @@ fn create_scene() -> Scene {
     //scene.add_light(Light::new(Vec3f::new(0.0, -200.0, -1000.0), 1.0));
     scene.add_light(Light::new(Vec3f::new(0.0, 200.0, 20.0), 1.0));
 
+    scene.refresh();
+    
     scene
 }
 
