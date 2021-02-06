@@ -65,7 +65,7 @@ struct TileMsg {
 fn cast_ray(ray_orig: Point3d, ray_dir: Vector3d, scene: &Scene) -> u8 {
     let mut distance_to_nearest_obj = f32::MAX;
     let mut nearest_obj_idx: Option<usize> = None;
-    
+
     const BG_COLOR: u8 = 30u8;
 
     for (idx, triangle) in scene.triangles.iter().enumerate() {
@@ -74,11 +74,11 @@ fn cast_ray(ray_orig: Point3d, ray_dir: Vector3d, scene: &Scene) -> u8 {
             Some(dist) if dist < distance_to_nearest_obj => {
                 distance_to_nearest_obj = dist;
                 nearest_obj_idx = Some(idx);
-            },
+            }
             _ => (),
         }
     }
-    
+
     if let Some(idx) = nearest_obj_idx {
         let surface_pt = (ray_orig + ray_dir) * distance_to_nearest_obj;
         let norm_to_surface: Vector3d = scene.triangles[idx].get_normal(surface_pt);
@@ -217,7 +217,7 @@ fn create_scene() -> Scene {
     scene.add_light(Light::new(Point3d::new(0.0, 200.0, 20.0), 1.0));
 
     scene.refresh();
-    
+
     scene
 }
 

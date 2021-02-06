@@ -3,12 +3,16 @@ use crate::primitives::Traceable;
 
 #[derive(Copy, Clone)]
 pub struct Triangle {
-    v: [Point3d; 3],
+    pub v: [Point3d; 3],
     normal: Vector3d,
     //parent: &Object,
 }
 
-fn moller_trumbore(triangle: &Triangle, ray_origin: Point3d, ray_dir: Vector3d) -> Option<(f32, f32, f32)> {
+fn moller_trumbore(
+    triangle: &Triangle,
+    ray_origin: Point3d,
+    ray_dir: Vector3d,
+) -> Option<(f32, f32, f32)> {
     const EPSILON: f32 = 0.001;
     let v0v1 = triangle.v[1] - triangle.v[0];
     let v0v2 = triangle.v[2] - triangle.v[0];
@@ -47,7 +51,7 @@ impl Triangle {
             normal,
         }
     }
-    
+
     fn get_uv(&self, ray_origin: Point3d, ray_dir: Vector3d) -> Option<(f32, f32)> {
         if let Some((_, u, v)) = moller_trumbore(self, ray_origin, ray_dir) {
             Some((u, v))
@@ -65,7 +69,7 @@ impl Traceable for Triangle {
             None
         }
     }
-    
+
     fn get_normal(&self, surface_pt: Point3d) -> Vector3d {
         // Vec3f::new(0.0, 0.0, 0.0)
         self.normal

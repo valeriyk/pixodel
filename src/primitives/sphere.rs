@@ -1,20 +1,20 @@
-/*use crate::math::Vec3f;
+use crate::math::{Point3d, Vector3d};
 use crate::primitives::Traceable;
 
 #[derive(Copy, Clone)]
 pub struct Sphere {
-    center: Vec3f,
+    center: Point3d,
     radius: f32,
 }
 
 impl Sphere {
-    pub fn new(center: Vec3f, radius: f32) -> Sphere {
+    pub fn new(center: Point3d, radius: f32) -> Sphere {
         Sphere { center, radius }
     }
 }
 
 impl Traceable for Sphere {
-    fn get_distance_to(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> Option<f32> {
+    fn get_distance_to(&self, ray_origin: Point3d, ray_dir: Vector3d) -> Option<f32> {
         let l = self.center - ray_origin;
         let tca = l * ray_dir;
         let d_squared = l * l - tca * tca;
@@ -33,8 +33,7 @@ impl Traceable for Sphere {
         }
     }
 
-    fn get_normal(&self, surface_pt: Vec3f) -> Vec3f {
+    fn get_normal(&self, surface_pt: Point3d) -> Vector3d {
         (surface_pt - self.center).normalize()
     }
 }
-*/

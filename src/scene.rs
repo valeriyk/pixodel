@@ -60,11 +60,17 @@ impl Scene {
         let model = obj::parse(file_content).unwrap();
         self.objects.push(Object::new(model));
     }
-    
+
     pub fn refresh(&mut self) {
         for obj in &self.objects {
             for triangle in obj.iter() {
-                self.triangles.push(triangle);
+                let model_mtx = get_model_mtx(&obj.translation, &obj.rotation, &obj.scale);
+                let t = Triangle::new(
+                    (&model_mtx * triangle.v[0]).normalize(),
+                    (&model_mtx * triangle.v[1]).normalize(),
+                    (&model_mtx * triangle.v[2]).normalize(),
+                );
+                self.triangles.push(t);
             }
         }
     }
@@ -77,8 +83,6 @@ impl Scene {
         self.lights.push(light);
     }
 }
-
-
 
 // impl Traceable for ObjSet {
 //     fn get_distance_to(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> Option<f32> {
@@ -130,9 +134,9 @@ impl<'a> Iterator for IterObjSet<'a> {
         }
 
         Some(Triangle::new(
-            Point3d::new(a.x as f32 * 10.0, a.y as f32 * 10.0, a.z as f32 - 30.0),
-            Point3d::new(b.x as f32 * 10.0, b.y as f32 * 10.0, b.z as f32 - 30.0),
-            Point3d::new(c.x as f32 * 10.0, c.y as f32 * 10.0, c.z as f32 - 30.0),
+            Point3d::new(a.x as f32 * 10.0, a.y as f32 * 10.0, a.z as f32),
+            Point3d::new(b.x as f32 * 10.0, b.y as f32 * 10.0, b.z as f32),
+            Point3d::new(c.x as f32 * 10.0, c.y as f32 * 10.0, c.z as f32),
         ))
     }
 }
@@ -156,14 +160,14 @@ impl Object {
     pub fn new(model: ObjSet) -> Self {
         Object {
             model,
-            scale: [1.0, 1.0, 1.0],
-            rotation: [0.0, 0.0, 0.0],
-            translation: [0.0, 0.0, 0.0],
+            scale: [0.5, 0.5, 1.0],
+            rotation: [0.0, 30.0, 0.0],
+            translation: [0.0, 0.0, -20.0],
             model_to_world: Mat4f::new(),
             world_to_model: Mat4f::new(),
         }
     }
-    
+
     pub fn iter(&self) -> IterObjSet {
         IterObjSet {
             objset: &self.model,
@@ -172,4 +176,79 @@ impl Object {
             sidx: 0,
         }
     }
+}
+
+fn rotate_about_x(m: &Mat4f, angle: f32) -> Mat4f {
+    let sin = angle.to_radians().sin();
+    let cos = angle.to_radians().cos();
+    let rx = Mat4f {
+        raw: [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, cos, -sin, 0.0],
+            [0.0, sin, cos, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+    };
+    m * &rx
+}
+
+fn rotate_about_y(m: &Mat4f, angle: f32) -> Mat4f {
+    let sin = angle.to_radians().sin();
+    let cos = angle.to_radians().cos();
+    let ry = Mat4f {
+        raw: [
+            [cos, 0.0, sin, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [-sin, 0.0, cos, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+    };
+    m * &ry
+}
+
+fn rotate_about_z(m: &Mat4f, angle: f32) -> Mat4f {
+    let sin = angle.to_radians().sin();
+    let cos = angle.to_radians().cos();
+    let rz = Mat4f {
+        raw: [
+            [cos, -sin, 0.0, 0.0],
+            [sin, cos, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+    };
+    m * &rz
+}
+
+fn translate_xyz(m: &Mat4f, translation: &[f32]) -> Mat4f {
+    let t = Mat4f {
+        raw: [
+            [1.0, 0.0, 0.0, translation[0]],
+            [0.0, 1.0, 0.0, translation[1]],
+            [0.0, 0.0, 1.0, translation[2]],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+    };
+    m * &t
+}
+
+fn scale_xyz(m: &Mat4f, scale: &[f32]) -> Mat4f {
+    let s = Mat4f {
+        raw: [
+            [scale[0], 0.0, 0.0, 0.0],
+            [0.0, scale[1], 0.0, 0.0],
+            [0.0, 0.0, scale[2], 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+    };
+    m * &s
+}
+
+fn get_model_mtx(translation: &[f32], rotation: &[f32], scale: &[f32]) -> Mat4f {
+    let t = translate_xyz(&Mat4f::new_identity(), translation);
+    let rx = rotate_about_x(&t, rotation[0]);
+    let rxy = rotate_about_y(&rx, rotation[1]);
+    let rxyz = rotate_about_z(&rxy, rotation[2]);
+    let model = scale_xyz(&rxyz, scale);
+    model
 }
