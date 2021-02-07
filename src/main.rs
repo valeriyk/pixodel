@@ -15,7 +15,7 @@ use crate::img_tiles::{Tile, TileGenerator, TilesLayout};
 use crate::light::Light;
 use crate::math::{Point3d, Vector3d};
 use crate::primitives::Traceable;
-use crate::scene::{Scene, Mesh};
+use crate::scene::{Scene, Mesh, TraceableObj};
 
 const NUM_SLAVES: u32 = 8;
 
@@ -212,8 +212,8 @@ fn create_scene() -> Scene {
     //scene.add_wavefront_obj("models/african_head.obj");
 
     let head_model = Arc::new(scene::new_wavefront_obj("models/african_head.obj").unwrap());
-    let mut head_0 = scene::Object::new(Arc::clone(&head_model));
-    let mut head_1 = scene::Object::new(Arc::clone(&head_model));
+    let mut head_0 = scene::WfObj::new(Arc::clone(&head_model));
+    let mut head_1 = scene::WfObj::new(Arc::clone(&head_model));
     head_0.scale(0.5, 0.5, 1.0);
     head_1.scale(0.5, 0.5, 1.0);
     head_0.rotate(0.0, 0.0, 0.0);

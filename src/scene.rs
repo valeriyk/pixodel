@@ -1,4 +1,3 @@
-//use crate::{Light, Traceable};
 use crate::light::Light;
 use crate::math::{Mat4f, Point3d, Point4d, Vector3d};
 use crate::primitives::triangle::Triangle;
@@ -11,8 +10,8 @@ use wavefront_obj::ParseError;
 
 pub struct Scene {
     pub lights: Vec<Light>,
-    //pub objects: Vec<Box<dyn Traceable>>,
-    pub objects: Vec<Object>,
+    //pub objects: Vec<WfObj>,
+    pub objects: Vec<Box<dyn TraceableObj>>,
 }
 
 pub struct Mesh {
@@ -22,13 +21,22 @@ pub struct Mesh {
     pub txt_coords: Vec<Point3d>,
 }
 
-pub struct Object {
+pub struct WfObj {
     model: Arc<ObjSet>,
     scale: [f32; 3],
     rotation: [f32; 3],
     translation: [f32; 3],
-    // model_to_world: Mat4f,
+    //model_to_world: Mat4f,
     // world_to_model: Mat4f,
+}
+
+pub trait TraceableObj {
+    fn triangulate(&self) -> Vec<Triangle>;
+    fn set_model_mtx(&self) -> Mat4f;
+    //fn get_model_mtx(&self) -> &Mat4f;
+    fn rotate(&mut self, x: f32, y: f32, z: f32);
+    fn scale(&mut self, x: f32, y: f32, z: f32);
+    fn translate(&mut self, x: f32, y: f32, z: f32);
 }
 
 #[repr(C, align(32))]
@@ -56,8 +64,8 @@ impl Scene {
         }
     }
 
-    pub fn add_obj(&mut self, obj: Object) {
-        self.objects.push(obj);
+    pub fn add_obj(&mut self, obj: WfObj) {
+        self.objects.push(Box::new(obj));
     }
 
     pub fn add_light(&mut self, light: Light) {
@@ -66,19 +74,12 @@ impl Scene {
 
     pub fn to_mesh(&self) -> Mesh {
         let mut mesh = Mesh::new();
-        for obj in &self.objects {
-            let model_to_world = get_model_mtx(&obj.translation, &obj.rotation, &obj.scale);
-            let t_vec = triangulate(obj.iter());
-            for triangle in t_vec {
-                
-                let t = Triangle::new(
-                    Point3d::from(&model_to_world * Point4d::from(triangle.v[0])),
-                    Point3d::from(&model_to_world * Point4d::from(triangle.v[1])),
-                    Point3d::from(&model_to_world * Point4d::from(triangle.v[2])),
-                );
+        for mut obj in &self.objects {
+            for t in obj.triangulate() {
                 mesh.triangles.push(t);
             }
         }
+        
         mesh.lights = self.lights.clone();
         mesh
     }
@@ -95,42 +96,17 @@ impl Mesh {
     }
 }
 
-// impl IntoIterator for ObjSet {
-//     fn get_distance_to(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> Option<f32> {
-//         moller_trumbore(self, ray_origin, ray_dir)
-//     }
-//     fn get_normal(&self, surface_pt: Vec3f) -> Vec3f {
-//         // Vec3f::new(0.0, 0.0, 0.0)
-//         self.normal
-//     }
-//
-//     type Item = ();
-//     type IntoIter = ();
-//
-//     fn into_iter(self) -> Self::IntoIter {
-//         unimplemented!()
-//     }
-// }
-
-fn triangulate<T>(obj: T) -> Vec<Triangle>
-where
-    T: Iterator<Item = Triangle>,
-    //T::Item: Triangle,
-{
-    obj.into_iter().collect()
-}
-
-pub struct IterObjSet<'a> {
-    objset: &'a ObjSet,
+pub struct IterWfObj<'a> {
+    wfobj: &'a WfObj,
     oidx: usize,
     gidx: usize,
     sidx: usize,
 }
 
-impl<'a> Iterator for IterObjSet<'a> {
+impl<'a> Iterator for IterWfObj<'a> {
     type Item = Triangle;
     fn next(&mut self) -> Option<Self::Item> {
-        let object = self.objset.objects.get(self.oidx)?;
+        let object = self.wfobj.model.objects.get(self.oidx)?;
         let geometry = object.geometry.get(self.gidx)?;
         let shape = geometry.shapes.get(self.sidx)?;
 
@@ -167,46 +143,21 @@ impl<'a> Iterator for IterObjSet<'a> {
     }
 }
 
-// impl ObjSetWrapper {
-//     pub fn new(model: ObjSet) -> Self {
-//         ObjSetWrapper { objset: model }
-//     }
-//
-//     pub fn iter(&self) -> IterObjSet {
-//         IterObjSet {
-//             objset: &self.objset,
-//             oidx: 0,
-//             gidx: 0,
-//             sidx: 0,
-//         }
-//     }
-// }
-
-impl Object {
+impl WfObj {
     pub fn new(model: Arc<ObjSet>) -> Self {
-        Object {
+        WfObj {
             model,
             scale: [0.0, 0.0, 0.0],
             rotation: [0.0, 00.0, 0.0],
             translation: [0.0, 0.0, 0.0],
-            // model_to_world: Mat4f::identity(),
+            //model_to_world: Mat4f::identity(),
             // world_to_model: Mat4f::identity(),
         }
     }
 
-    pub fn translate(&mut self, x: f32, y: f32, z: f32) {
-        self.translation = [x, y, z];
-    }
-    pub fn rotate(&mut self, x: f32, y: f32, z: f32) {
-        self.rotation = [x, y, z];
-    }
-    pub fn scale(&mut self, x: f32, y: f32, z: f32) {
-        self.scale = [x, y, z];
-    }
-
-    pub fn iter(&self) -> IterObjSet {
-        IterObjSet {
-            objset: &self.model,
+    pub fn iter(&self) -> IterWfObj {
+        IterWfObj {
+            wfobj: &self,
             oidx: 0,
             gidx: 0,
             sidx: 0,
@@ -214,16 +165,41 @@ impl Object {
     }
 }
 
-// impl IntoIterator for ObjSet {
-//     type Item = Triangle;
-//     type IntoIter = IterObjSet;
-//     // fn into_iter(self) -> Self::IntoIter {
-//     //     IterPoint3d {
-//     //         pt: self,
-//     //         item_idx: 0,
-//     //     }
-//     // }
-// }
+impl TraceableObj for WfObj {
+    fn triangulate(&self) -> Vec<Triangle> {
+        let model_to_world = self.set_model_mtx();
+        self.iter().map(|t| {
+            Triangle::new(
+                Point3d::from(&model_to_world * Point4d::from(t.v[0])),
+                Point3d::from(&model_to_world * Point4d::from(t.v[1])),
+                Point3d::from(&model_to_world * Point4d::from(t.v[2])),
+            )
+        }).collect()
+    }
+    
+    fn set_model_mtx(&self) -> Mat4f {
+        let t = translate_xyz(&Mat4f::identity(), &self.translation);
+        let rx = rotate_about_x(&t, self.rotation[0]);
+        let rxy = rotate_about_y(&rx, self.rotation[1]);
+        let rxyz = rotate_about_z(&rxy, self.rotation[2]);
+        let model_to_world = scale_xyz(&rxyz, &self.scale);
+        model_to_world
+    }
+    
+    // fn get_model_mtx(&self) -> &Mat4f {
+    //     &self.model_to_world
+    // }
+    
+    fn rotate(&mut self, x: f32, y: f32, z: f32) {
+        self.rotation = [x, y, z];
+    }
+    fn scale(&mut self, x: f32, y: f32, z: f32) {
+        self.scale = [x, y, z];
+    }
+    fn translate(&mut self, x: f32, y: f32, z: f32) {
+        self.translation = [x, y, z];
+    }
+}
 
 fn rotate_about_x(m: &Mat4f, angle: f32) -> Mat4f {
     let sin = angle.to_radians().sin();
@@ -252,6 +228,7 @@ fn rotate_about_y(m: &Mat4f, angle: f32) -> Mat4f {
     };
     m * &ry
 }
+
 
 fn rotate_about_z(m: &Mat4f, angle: f32) -> Mat4f {
     let sin = angle.to_radians().sin();
@@ -289,13 +266,4 @@ fn scale_xyz(m: &Mat4f, scale: &[f32]) -> Mat4f {
         ],
     };
     m * &s
-}
-
-fn get_model_mtx(translation: &[f32], rotation: &[f32], scale: &[f32]) -> Mat4f {
-    let t = translate_xyz(&Mat4f::identity(), translation);
-    let rx = rotate_about_x(&t, rotation[0]);
-    let rxy = rotate_about_y(&rx, rotation[1]);
-    let rxyz = rotate_about_z(&rxy, rotation[2]);
-    let model = scale_xyz(&rxyz, scale);
-    model
 }
