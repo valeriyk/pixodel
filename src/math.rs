@@ -1,5 +1,6 @@
 mod mat;
 mod vec;
+pub mod geometry;
 
 pub use mat::Mat4f;
 pub use vec::Point3d;

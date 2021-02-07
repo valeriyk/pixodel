@@ -1,5 +1,5 @@
 use crate::math::{Point3d, Vector3d};
-use crate::primitives::Traceable;
+use crate::scene::primitives::TraceablePrimitive;
 
 #[derive(Copy, Clone)]
 pub struct Sphere {
@@ -13,7 +13,7 @@ impl Sphere {
     }
 }
 
-impl Traceable for Sphere {
+impl TraceablePrimitive for Sphere {
     fn get_distance_to(&self, ray_origin: Point3d, ray_dir: Vector3d) -> Option<f32> {
         let l = self.center - ray_origin;
         let tca = l * ray_dir;

@@ -1,5 +1,5 @@
 use crate::math::{Point3d, Vector3d};
-use crate::primitives::Traceable;
+use crate::scene::primitives::TraceablePrimitive;
 
 #[derive(Copy, Clone)]
 pub struct Triangle {
@@ -61,7 +61,7 @@ impl Triangle {
     }
 }
 
-impl Traceable for Triangle {
+impl TraceablePrimitive for Triangle {
     fn get_distance_to(&self, ray_origin: Point3d, ray_dir: Vector3d) -> Option<f32> {
         if let Some((t, _, _)) = moller_trumbore(self, ray_origin, ray_dir) {
             Some(t)

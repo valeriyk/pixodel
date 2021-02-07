@@ -1,21 +1,22 @@
 extern crate image;
 
 mod img_tiles;
-mod light;
 mod math;
-mod primitives;
 mod scene;
 
-use std::sync::{mpsc, Arc};
+use std::sync::{Arc, mpsc};
 use std::thread;
 
 use image::{GenericImage, ImageBuffer};
 
+use scene::light::Light;
+use scene::primitives::TraceablePrimitive;
+
 use crate::img_tiles::{Tile, TileGenerator, TilesLayout};
-use crate::light::Light;
 use crate::math::{Point3d, Vector3d};
-use crate::primitives::Traceable;
-use crate::scene::{Scene, Mesh, TraceableObj};
+use crate::scene::{Mesh, Scene, TraceableObj};
+
+
 
 const NUM_SLAVES: u32 = 8;
 
@@ -220,8 +221,8 @@ fn create_scene() -> Scene {
     head_1.rotate(0.0, 0.0, 0.0);
     head_0.translate(2.0, 0.0, -30.0);
     head_1.translate(-2.0, 0.0, -30.0);
-    scene.add_obj(head_0);
-    scene.add_obj(head_1);
+    scene.add_obj(Box::new(head_0));
+    scene.add_obj(Box::new(head_1));
 
     //scene.add_light(Light::new(Vec3f::new(-50.0, -50.0, -10.0), 1.0));
     //scene.add_light(Light::new(Vec3f::new(50.0, -50.0, -10.0), 1.0));
