@@ -15,8 +15,7 @@ use crate::img_tiles::{Tile, TileGenerator, TilesLayout};
 use crate::light::Light;
 use crate::math::{Point3d, Vector3d};
 use crate::primitives::Traceable;
-use crate::scene::Scene;
-use std::rc::Rc;
+use crate::scene::{Scene, Mesh};
 
 const NUM_SLAVES: u32 = 8;
 
@@ -63,13 +62,13 @@ struct TileMsg {
     is_last: bool,
 }
 
-fn cast_ray(ray_orig: Point3d, ray_dir: Vector3d, scene: &Scene) -> u8 {
+fn cast_ray(ray_orig: Point3d, ray_dir: Vector3d, mesh: &Mesh) -> u8 {
     let mut distance_to_nearest_obj = f32::MAX;
     let mut nearest_obj_idx: Option<usize> = None;
 
     const BG_COLOR: u8 = 30u8;
 
-    for (idx, triangle) in scene.triangles.iter().enumerate() {
+    for (idx, triangle) in mesh.triangles.iter().enumerate() {
         let distance_to_obj = triangle.get_distance_to(ray_orig, ray_dir);
         match distance_to_obj {
             Some(dist) if dist < distance_to_nearest_obj => {
@@ -82,9 +81,9 @@ fn cast_ray(ray_orig: Point3d, ray_dir: Vector3d, scene: &Scene) -> u8 {
 
     if let Some(idx) = nearest_obj_idx {
         let surface_pt = (ray_orig + ray_dir) * distance_to_nearest_obj;
-        let norm_to_surface: Vector3d = scene.triangles[idx].get_normal(surface_pt);
+        let norm_to_surface: Vector3d = mesh.triangles[idx].get_normal(surface_pt);
         let mut illumination =
-            get_phong_illumination(surface_pt, ray_orig, norm_to_surface, &scene.lights);
+            get_phong_illumination(surface_pt, ray_orig, norm_to_surface, &mesh.lights);
         if illumination > 1.0 {
             illumination = 1.0
         }
@@ -94,7 +93,7 @@ fn cast_ray(ray_orig: Point3d, ray_dir: Vector3d, scene: &Scene) -> u8 {
     }
 }
 
-fn slv_thread_proc(slave_idx: u32, num_slaves: u32, tx: mpsc::Sender<TileMsg>, scene: Arc<Scene>) {
+fn slv_thread_proc(slave_idx: u32, num_slaves: u32, tx: mpsc::Sender<TileMsg>, scene: Arc<Mesh>) {
     let layout = TilesLayout::new(FRAME_WIDTH, FRAME_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
 
     let mut tiles = TileGenerator::new(slave_idx, num_slaves, &layout);
@@ -238,13 +237,11 @@ fn main() {
     let (tx, rx) = mpsc::channel();
 
     //let scene_glob = Arc::new(create_scene().refresh());
-    let mut scene_glob = create_scene();
-    scene_glob.refresh();
-    let scene_glob = Arc::new(scene_glob);
+    let mesh_glob = Arc::new(create_scene().to_mesh());
 
     for i in 0..NUM_SLAVES {
         let tx_slv_to_fbuf = mpsc::Sender::clone(&tx);
-        let scene = scene_glob.clone();
+        let mesh = mesh_glob.clone();
 
         let mut thread_name = String::from("slv_thread_proc");
         thread_name.push_str(&i.to_string());
@@ -252,7 +249,7 @@ fn main() {
             .name(thread_name)
             .stack_size(32000000);
         let handle = builder
-            .spawn(move || slv_thread_proc(i, NUM_SLAVES, tx_slv_to_fbuf, scene))
+            .spawn(move || slv_thread_proc(i, NUM_SLAVES, tx_slv_to_fbuf, mesh))
             .unwrap();
 
         thread_handles.push(handle);

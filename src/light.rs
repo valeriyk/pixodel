@@ -1,6 +1,7 @@
 //pub mod light {
 use crate::math::Point3d;
 
+#[derive(Copy, Clone)]
 pub struct Light {
     pub position: Point3d,
     pub intensity: f32,

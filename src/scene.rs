@@ -13,6 +13,10 @@ pub struct Scene {
     pub lights: Vec<Light>,
     //pub objects: Vec<Box<dyn Traceable>>,
     pub objects: Vec<Object>,
+}
+
+pub struct Mesh {
+    pub lights: Vec<Light>,
     pub triangles: Vec<Triangle>,
     pub vtx_normals: Vec<Vector3d>,
     pub txt_coords: Vec<Point3d>,
@@ -23,8 +27,8 @@ pub struct Object {
     scale: [f32; 3],
     rotation: [f32; 3],
     translation: [f32; 3],
-    model_to_world: Mat4f,
-    world_to_model: Mat4f,
+    // model_to_world: Mat4f,
+    // world_to_model: Mat4f,
 }
 
 #[repr(C, align(32))]
@@ -49,9 +53,6 @@ impl Scene {
         Scene {
             lights: Vec::new(),
             objects: Vec::new(),
-            triangles: Vec::new(),
-            vtx_normals: Vec::new(),
-            txt_coords: Vec::new(),
         }
     }
 
@@ -63,23 +64,38 @@ impl Scene {
         self.lights.push(light);
     }
 
-    pub fn refresh(&mut self) {
-        for mut obj in &mut self.objects {
-            obj.model_to_world = get_model_mtx(&obj.translation, &obj.rotation, &obj.scale);
-            for triangle in obj.iter() {
+    pub fn to_mesh(&self) -> Mesh {
+        let mut mesh = Mesh::new();
+        for obj in &self.objects {
+            let model_to_world = get_model_mtx(&obj.translation, &obj.rotation, &obj.scale);
+            let t_vec = triangulate(obj.iter());
+            for triangle in t_vec {
                 
                 let t = Triangle::new(
-                    Point3d::from(&obj.model_to_world * Point4d::from(triangle.v[0])),
-                    Point3d::from(&obj.model_to_world * Point4d::from(triangle.v[1])),
-                    Point3d::from(&obj.model_to_world * Point4d::from(triangle.v[2])),
+                    Point3d::from(&model_to_world * Point4d::from(triangle.v[0])),
+                    Point3d::from(&model_to_world * Point4d::from(triangle.v[1])),
+                    Point3d::from(&model_to_world * Point4d::from(triangle.v[2])),
                 );
-                self.triangles.push(t);
+                mesh.triangles.push(t);
             }
+        }
+        mesh.lights = self.lights.clone();
+        mesh
+    }
+}
+
+impl Mesh {
+    pub fn new() -> Self {
+        Mesh {
+            lights: Vec::new(),
+            triangles: Vec::new(),
+            vtx_normals: Vec::new(),
+            txt_coords: Vec::new(),
         }
     }
 }
 
-// impl Traceable for ObjSet {
+// impl IntoIterator for ObjSet {
 //     fn get_distance_to(&self, ray_origin: Vec3f, ray_dir: Vec3f) -> Option<f32> {
 //         moller_trumbore(self, ray_origin, ray_dir)
 //     }
@@ -87,7 +103,22 @@ impl Scene {
 //         // Vec3f::new(0.0, 0.0, 0.0)
 //         self.normal
 //     }
+//
+//     type Item = ();
+//     type IntoIter = ();
+//
+//     fn into_iter(self) -> Self::IntoIter {
+//         unimplemented!()
+//     }
 // }
+
+fn triangulate<T>(obj: T) -> Vec<Triangle>
+where
+    T: Iterator<Item = Triangle>,
+    //T::Item: Triangle,
+{
+    obj.into_iter().collect()
+}
 
 pub struct IterObjSet<'a> {
     objset: &'a ObjSet,
@@ -158,8 +189,8 @@ impl Object {
             scale: [0.0, 0.0, 0.0],
             rotation: [0.0, 00.0, 0.0],
             translation: [0.0, 0.0, 0.0],
-            model_to_world: Mat4f::identity(),
-            world_to_model: Mat4f::identity(),
+            // model_to_world: Mat4f::identity(),
+            // world_to_model: Mat4f::identity(),
         }
     }
 
@@ -182,6 +213,17 @@ impl Object {
         }
     }
 }
+
+// impl IntoIterator for ObjSet {
+//     type Item = Triangle;
+//     type IntoIter = IterObjSet;
+//     // fn into_iter(self) -> Self::IntoIter {
+//     //     IterPoint3d {
+//     //         pt: self,
+//     //         item_idx: 0,
+//     //     }
+//     // }
+// }
 
 fn rotate_about_x(m: &Mat4f, angle: f32) -> Mat4f {
     let sin = angle.to_radians().sin();
