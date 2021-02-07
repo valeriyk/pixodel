@@ -211,7 +211,7 @@ fn create_scene() -> Scene {
     // )));
     //scene.add_wavefront_obj("models/cube2.obj");
     //scene.add_wavefront_obj("models/african_head.obj");
-    
+
     let head_model = Arc::new(scene::new_wavefront_obj("models/african_head.obj").unwrap());
     let mut head_0 = scene::Object::new(Arc::clone(&head_model));
     let mut head_1 = scene::Object::new(Arc::clone(&head_model));
@@ -228,7 +228,7 @@ fn create_scene() -> Scene {
     //scene.add_light(Light::new(Vec3f::new(50.0, -50.0, -10.0), 1.0));
     //scene.add_light(Light::new(Vec3f::new(0.0, -200.0, -1000.0), 1.0));
     scene.add_light(Light::new(Point3d::from_coords(0.0, 200.0, 20.0), 1.0));
-    
+
     scene
 }
 
@@ -240,8 +240,8 @@ fn main() {
     //let scene_glob = Arc::new(create_scene().refresh());
     let mut scene_glob = create_scene();
     scene_glob.refresh();
-    let scene_glob= Arc::new(scene_glob);
-    
+    let scene_glob = Arc::new(scene_glob);
+
     for i in 0..NUM_SLAVES {
         let tx_slv_to_fbuf = mpsc::Sender::clone(&tx);
         let scene = scene_glob.clone();

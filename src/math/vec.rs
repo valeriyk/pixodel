@@ -1,5 +1,5 @@
-use std::ops::{Index, Mul, Add};
 use std::iter::FromIterator;
+use std::ops::{Add, Index, Mul};
 
 #[derive(Copy, Clone)]
 pub struct Point3d {
@@ -25,13 +25,21 @@ pub struct Vector3d {
 
 impl Point3d {
     pub fn new() -> Point3d {
-        Point3d {x: 0.0, y: 0.0, z: 0.0}
+        Point3d {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        }
     }
     pub fn from_array(a: &[f32; 3]) -> Point3d {
-        Point3d {x: a[0], y: a[1], z: a[2]}
+        Point3d {
+            x: a[0],
+            y: a[1],
+            z: a[2],
+        }
     }
     pub fn from_coords(x: f32, y: f32, z: f32) -> Point3d {
-        Point3d {x, y, z}
+        Point3d { x, y, z }
     }
 }
 
@@ -160,18 +168,25 @@ impl IntoIterator for Point3d {
 }
 */
 
-
-
-
 impl Point4d {
     pub fn new() -> Point4d {
-        Point4d {x: 0.0, y: 0.0, z: 0.0, w: 0.0}
+        Point4d {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 0.0,
+        }
     }
     pub fn from_array(a: &[f32; 4]) -> Point4d {
-        Point4d {x: a[0], y: a[1], z: a[2], w: a[3]}
+        Point4d {
+            x: a[0],
+            y: a[1],
+            z: a[2],
+            w: a[3],
+        }
     }
     pub fn from_coords(x: f32, y: f32, z: f32, w: f32) -> Point4d {
-        Point4d {x, y, z, w}
+        Point4d { x, y, z, w }
     }
 }
 
@@ -188,7 +203,7 @@ impl core::convert::From<Point3d> for Point4d {
 
 impl std::ops::Index<usize> for Point4d {
     type Output = f32;
-    
+
     fn index(&self, idx: usize) -> &Self::Output {
         match idx {
             0 => &self.x,
@@ -212,22 +227,25 @@ impl std::ops::IndexMut<usize> for Point4d {
     }
 }
 
-
-
-
-
-
 impl Vector3d {
     pub fn new() -> Vector3d {
-        Vector3d {x: 0.0, y: 0.0, z: 0.0}
+        Vector3d {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        }
     }
     pub fn from_array(a: &[f32; 3]) -> Vector3d {
-        Vector3d {x: a[0], y: a[1], z: a[2]}
+        Vector3d {
+            x: a[0],
+            y: a[1],
+            z: a[2],
+        }
     }
     pub fn from_coords(x: f32, y: f32, z: f32) -> Vector3d {
-        Vector3d {x, y, z}
+        Vector3d { x, y, z }
     }
-    
+
     pub fn normalize(&self) -> Self {
         let length = (*self * *self).sqrt();
         let length_inverted = 1.0 / length;
@@ -348,8 +366,6 @@ impl IntoIterator for Vector3d {
 }
 */
 
-
-
 /*/// Point + Vector = Point; Vector + Vector = Vector,
 fn add_vector<T>(this: T, other: &[f32]) -> T
     where
@@ -378,7 +394,7 @@ fn add_any<T>(this: &[f32], other: &[f32]) -> T
 
 impl core::ops::Add<Point3d_2> for Point3d_2 {
     type Output = Vector3d_2;
-    
+
     fn add(self, other: Self) -> Self::Output {
         add_any::<Self::Output>(&self.v, &other.v)
     }
@@ -386,7 +402,7 @@ impl core::ops::Add<Point3d_2> for Point3d_2 {
 
 impl core::ops::Add<Vector3d_2> for Point3d_2 {
     type Output = Point3d_2;
-    
+
     fn add(self, other: Vector3d_2) -> Self::Output {
         add_any::<Self::Output>(&self.v, &other.v)
     }

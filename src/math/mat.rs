@@ -1,5 +1,5 @@
-use crate::math::Point3d;
 use crate::math::vec::Point4d;
+use crate::math::Point3d;
 
 pub struct Mat4f {
     pub raw: [[f32; 4]; 4],

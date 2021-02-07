@@ -4,10 +4,10 @@ use crate::math::{Mat4f, Point3d, Point4d, Vector3d};
 use crate::primitives::triangle::Triangle;
 use std::fs::File;
 use std::io::Read;
-use wavefront_obj::obj::{self, ObjSet};
-use wavefront_obj::ParseError;
 use std::rc::Rc;
 use std::sync::Arc;
+use wavefront_obj::obj::{self, ObjSet};
+use wavefront_obj::ParseError;
 
 pub struct Scene {
     pub lights: Vec<Light>,
@@ -17,14 +17,6 @@ pub struct Scene {
     pub vtx_normals: Vec<Vector3d>,
     pub txt_coords: Vec<Point3d>,
 }
-
-// pub struct ObjSetWrapper {
-//     pub objset: ObjSet,
-//     // scale: Vec3f,
-//     // rotation: Vec3f,
-//     // translation: Vec3f,
-//     // model_mat: Mat4f,
-// }
 
 pub struct Object {
     model: Arc<ObjSet>,
@@ -62,23 +54,24 @@ impl Scene {
             txt_coords: Vec::new(),
         }
     }
-    
+
     pub fn add_obj(&mut self, obj: Object) {
         self.objects.push(obj);
     }
-    
+
     pub fn add_light(&mut self, light: Light) {
         self.lights.push(light);
     }
-    
+
     pub fn refresh(&mut self) {
-        for obj in &self.objects {
+        for mut obj in &mut self.objects {
+            obj.model_to_world = get_model_mtx(&obj.translation, &obj.rotation, &obj.scale);
             for triangle in obj.iter() {
-                let model_mtx = get_model_mtx(&obj.translation, &obj.rotation, &obj.scale);
+                
                 let t = Triangle::new(
-                    Point3d::from(&model_mtx * Point4d::from(triangle.v[0])),
-                    Point3d::from(&model_mtx * Point4d::from(triangle.v[1])),
-                    Point3d::from(&model_mtx * Point4d::from(triangle.v[2])),
+                    Point3d::from(&obj.model_to_world * Point4d::from(triangle.v[0])),
+                    Point3d::from(&obj.model_to_world * Point4d::from(triangle.v[1])),
+                    Point3d::from(&obj.model_to_world * Point4d::from(triangle.v[2])),
                 );
                 self.triangles.push(t);
             }
@@ -169,7 +162,7 @@ impl Object {
             world_to_model: Mat4f::identity(),
         }
     }
-    
+
     pub fn translate(&mut self, x: f32, y: f32, z: f32) {
         self.translation = [x, y, z];
     }
