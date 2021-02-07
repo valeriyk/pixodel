@@ -1,10 +1,10 @@
 use wavefront_obj::obj::{self, ObjSet};
 use std::sync::Arc;
-use crate::scene::TraceableObj;
-use crate::scene::primitives::triangle::Triangle;
-use crate::math::{Mat4f, Point3d, Point4d};
-use crate::math::geometry;
-use crate::math::geometry::*;
+use crate::scene::objects::TraceableObject;
+use crate::geometry::triangle::Triangle;
+use crate::geometry::{Mat4f, Point3d, Point4d};
+use crate::geometry::matrix_transform;
+use crate::geometry::matrix_transform::*;
 
 pub struct WfObj {
 	model: Arc<ObjSet>,
@@ -37,7 +37,7 @@ impl WfObj {
 	}
 }
 
-impl TraceableObj for WfObj {
+impl TraceableObject for WfObj {
 	fn triangulate(&self) -> Vec<Triangle> {
 		let model_to_world = self.set_model_mtx();
 		self.iter().map(|t| {
@@ -73,7 +73,7 @@ impl TraceableObj for WfObj {
 	}
 }
 
-struct IterWfObj<'a> {
+pub struct IterWfObj<'a> {
 	wfobj: &'a WfObj,
 	oidx: usize,
 	gidx: usize,

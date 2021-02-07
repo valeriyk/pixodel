@@ -1,7 +1,7 @@
 extern crate image;
 
 mod img_tiles;
-mod math;
+mod geometry;
 mod scene;
 
 use std::sync::{Arc, mpsc};
@@ -10,11 +10,11 @@ use std::thread;
 use image::{GenericImage, ImageBuffer};
 
 use scene::light::Light;
-use scene::primitives::TraceablePrimitive;
+use scene::objects::TraceablePrimitive;
 
 use crate::img_tiles::{Tile, TileGenerator, TilesLayout};
-use crate::math::{Point3d, Vector3d};
-use crate::scene::{Mesh, Scene, TraceableObj};
+use crate::geometry::{Point3d, Vector3d};
+use crate::scene::{Mesh, Scene, objects::TraceableObject};
 
 
 

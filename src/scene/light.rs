@@ -1,5 +1,5 @@
 //pub mod light {
-use crate::math::Point3d;
+use crate::geometry::Point3d;
 
 #[derive(Copy, Clone)]
 pub struct Light {

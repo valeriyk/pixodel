@@ -1,6 +1,5 @@
 pub mod light;
-pub mod primitives;
-pub mod wfobj;
+pub mod objects;
 
 use std::fs::File;
 use std::io::Read;
@@ -11,16 +10,16 @@ use wavefront_obj::obj::{self, ObjSet};
 use wavefront_obj::ParseError;
 
 use light::Light;
-use primitives::triangle::Triangle;
+use crate::geometry::triangle::Triangle;
 
-use crate::math::{Mat4f, Point3d, Point4d, Vector3d};
-pub use crate::scene::wfobj::WfObj;
-
+use crate::geometry::{Mat4f, Point3d, Point4d, Vector3d};
+pub use crate::scene::objects::wfobj::WfObj;
+use crate::scene::objects::TraceableObject;
 
 
 pub struct Scene {
     pub lights: Vec<Light>,
-    pub objects: Vec<Box<dyn TraceableObj>>,
+    pub objects: Vec<Box<dyn TraceableObject>>,
 }
 
 pub struct Mesh {
@@ -30,15 +29,6 @@ pub struct Mesh {
     pub txt_coords: Vec<Point3d>,
 }
 
-
-pub trait TraceableObj {
-    fn triangulate(&self) -> Vec<Triangle>;
-    fn set_model_mtx(&self) -> Mat4f;
-    //fn get_model_mtx(&self) -> &Mat4f;
-    fn rotate(&mut self, x: f32, y: f32, z: f32);
-    fn scale(&mut self, x: f32, y: f32, z: f32);
-    fn translate(&mut self, x: f32, y: f32, z: f32);
-}
 
 #[repr(C, align(32))]
 struct VtxAttr {
@@ -65,7 +55,7 @@ impl Scene {
         }
     }
 
-    pub fn add_obj(&mut self, obj: Box<dyn TraceableObj>) {
+    pub fn add_obj(&mut self, obj: Box<dyn TraceableObject>) {
         self.objects.push(obj);
     }
 

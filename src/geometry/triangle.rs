@@ -1,5 +1,5 @@
-use crate::math::{Point3d, Vector3d};
-use crate::scene::primitives::TraceablePrimitive;
+use crate::geometry::{Point3d, Vector3d};
+use crate::scene::objects::TraceablePrimitive;
 
 #[derive(Copy, Clone)]
 pub struct Triangle {
