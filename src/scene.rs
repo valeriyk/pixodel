@@ -1,10 +1,13 @@
 //use crate::{Light, Traceable};
 use crate::light::Light;
-use crate::math::{Mat4f, Point3d, Vector3d};
+use crate::math::{Mat4f, Point3d, Point4d, Vector3d};
 use crate::primitives::triangle::Triangle;
 use std::fs::File;
 use std::io::Read;
 use wavefront_obj::obj::{self, ObjSet};
+use wavefront_obj::ParseError;
+use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct Scene {
     pub lights: Vec<Light>,
@@ -24,7 +27,7 @@ pub struct Scene {
 // }
 
 pub struct Object {
-    model: ObjSet,
+    model: Arc<ObjSet>,
     scale: [f32; 3],
     rotation: [f32; 3],
     translation: [f32; 3],
@@ -39,6 +42,16 @@ struct VtxAttr {
     txt_coords: Point3d,
 }
 
+pub fn new_wavefront_obj(path: &str) -> Result<ObjSet, ParseError> {
+    let file_content = {
+        let mut f = File::open(path).unwrap();
+        let mut content = String::new();
+        f.read_to_string(&mut content);
+        content
+    };
+    obj::parse(file_content)
+}
+
 impl Scene {
     pub fn new() -> Self {
         Scene {
@@ -49,38 +62,27 @@ impl Scene {
             txt_coords: Vec::new(),
         }
     }
-
-    pub fn add_wavefront_obj(&mut self, path: &str) {
-        let file_content = {
-            let mut f = File::open(path).unwrap();
-            let mut content = String::new();
-            f.read_to_string(&mut content);
-            content
-        };
-        let model = obj::parse(file_content).unwrap();
-        self.objects.push(Object::new(model));
+    
+    pub fn add_obj(&mut self, obj: Object) {
+        self.objects.push(obj);
     }
-
+    
+    pub fn add_light(&mut self, light: Light) {
+        self.lights.push(light);
+    }
+    
     pub fn refresh(&mut self) {
         for obj in &self.objects {
             for triangle in obj.iter() {
                 let model_mtx = get_model_mtx(&obj.translation, &obj.rotation, &obj.scale);
                 let t = Triangle::new(
-                    (&model_mtx * triangle.v[0]).normalize(),
-                    (&model_mtx * triangle.v[1]).normalize(),
-                    (&model_mtx * triangle.v[2]).normalize(),
+                    Point3d::from(&model_mtx * Point4d::from(triangle.v[0])),
+                    Point3d::from(&model_mtx * Point4d::from(triangle.v[1])),
+                    Point3d::from(&model_mtx * Point4d::from(triangle.v[2])),
                 );
                 self.triangles.push(t);
             }
         }
-    }
-
-    //pub fn add_obj(&mut self, obj: Box<dyn Traceable>) {
-    //     self.objects.push(obj);
-    // }
-
-    pub fn add_light(&mut self, light: Light) {
-        self.lights.push(light);
     }
 }
 
@@ -134,9 +136,9 @@ impl<'a> Iterator for IterObjSet<'a> {
         }
 
         Some(Triangle::new(
-            Point3d::new(a.x as f32 * 10.0, a.y as f32 * 10.0, a.z as f32),
-            Point3d::new(b.x as f32 * 10.0, b.y as f32 * 10.0, b.z as f32),
-            Point3d::new(c.x as f32 * 10.0, c.y as f32 * 10.0, c.z as f32),
+            Point3d::from_coords(a.x as f32 * 10.0, a.y as f32 * 10.0, a.z as f32),
+            Point3d::from_coords(b.x as f32 * 10.0, b.y as f32 * 10.0, b.z as f32),
+            Point3d::from_coords(c.x as f32 * 10.0, c.y as f32 * 10.0, c.z as f32),
         ))
     }
 }
@@ -157,15 +159,25 @@ impl<'a> Iterator for IterObjSet<'a> {
 // }
 
 impl Object {
-    pub fn new(model: ObjSet) -> Self {
+    pub fn new(model: Arc<ObjSet>) -> Self {
         Object {
             model,
-            scale: [0.5, 0.5, 1.0],
-            rotation: [0.0, 30.0, 0.0],
-            translation: [0.0, 0.0, -20.0],
-            model_to_world: Mat4f::new(),
-            world_to_model: Mat4f::new(),
+            scale: [0.0, 0.0, 0.0],
+            rotation: [0.0, 00.0, 0.0],
+            translation: [0.0, 0.0, 0.0],
+            model_to_world: Mat4f::identity(),
+            world_to_model: Mat4f::identity(),
         }
+    }
+    
+    pub fn translate(&mut self, x: f32, y: f32, z: f32) {
+        self.translation = [x, y, z];
+    }
+    pub fn rotate(&mut self, x: f32, y: f32, z: f32) {
+        self.rotation = [x, y, z];
+    }
+    pub fn scale(&mut self, x: f32, y: f32, z: f32) {
+        self.scale = [x, y, z];
     }
 
     pub fn iter(&self) -> IterObjSet {
@@ -245,7 +257,7 @@ fn scale_xyz(m: &Mat4f, scale: &[f32]) -> Mat4f {
 }
 
 fn get_model_mtx(translation: &[f32], rotation: &[f32], scale: &[f32]) -> Mat4f {
-    let t = translate_xyz(&Mat4f::new_identity(), translation);
+    let t = translate_xyz(&Mat4f::identity(), translation);
     let rx = rotate_about_x(&t, rotation[0]);
     let rxy = rotate_about_y(&rx, rotation[1]);
     let rxyz = rotate_about_z(&rxy, rotation[2]);

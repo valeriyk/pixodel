@@ -1,4 +1,5 @@
 use crate::math::Point3d;
+use crate::math::vec::Point4d;
 
 pub struct Mat4f {
     pub raw: [[f32; 4]; 4],
@@ -8,7 +9,7 @@ impl Mat4f {
     pub fn new() -> Self {
         Mat4f { raw: [[0.0; 4]; 4] }
     }
-    pub fn new_identity() -> Self {
+    pub fn identity() -> Self {
         Mat4f {
             raw: [
                 [1.0, 0.0, 0.0, 0.0],
@@ -37,11 +38,11 @@ impl<'a, 'b> core::ops::Mul<&'b Mat4f> for &'a Mat4f {
     }
 }
 
-impl<'a> core::ops::Mul<Point3d> for &'a Mat4f {
-    type Output = Point3d;
+impl<'a> core::ops::Mul<Point4d> for &'a Mat4f {
+    type Output = Point4d;
 
-    fn mul(self, other: Point3d) -> Self::Output {
-        let mut p = Point3d::new(0.0, 0.0, 0.0);
+    fn mul(self, other: Point4d) -> Self::Output {
+        let mut p = Point4d::new();
         for i in 0..4 {
             p[i] = 0.0;
             for j in 0..4 {
