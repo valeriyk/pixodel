@@ -15,7 +15,7 @@ use scene::objects::TraceablePrimitive;
 use crate::img_tiles::{Tile, TileGenerator, TilesLayout};
 use crate::geometry::{Point3d, Vector3d};
 use crate::scene::{Mesh, Scene, objects::TraceableObject};
-
+use crate::geometry::triangle::Triangle;
 
 
 const NUM_SLAVES: u32 = 8;
@@ -223,7 +223,17 @@ fn create_scene() -> Scene {
     head_1.translate(-2.0, 0.0, -30.0);
     scene.add_obj(Box::new(head_0));
     scene.add_obj(Box::new(head_1));
-
+    
+    let mut tri_0 = scene::TriObj::new(Triangle::new(
+        Point3d::from_coords(-1.0, 1.0, 0.0),
+        Point3d::from_coords(0.0, -1.0, 0.0),
+        Point3d::from_coords(1.0, 0.8, 0.0),
+    ));
+    tri_0.scale(10.0, 10.0, 10.0);
+    tri_0.rotate(-45.0, 0.0, 0.0);
+    tri_0.translate(0.0, 0.0, -30.0);
+    scene.add_obj(Box::new(tri_0));
+    
     //scene.add_light(Light::new(Vec3f::new(-50.0, -50.0, -10.0), 1.0));
     //scene.add_light(Light::new(Vec3f::new(50.0, -50.0, -10.0), 1.0));
     //scene.add_light(Light::new(Vec3f::new(0.0, -200.0, -1000.0), 1.0));

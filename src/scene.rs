@@ -14,6 +14,8 @@ use crate::geometry::triangle::Triangle;
 
 use crate::geometry::{Mat4f, Point3d, Point4d, Vector3d};
 pub use crate::scene::objects::wfobj::WfObj;
+pub use crate::scene::objects::triangle::TriObj;
+
 use crate::scene::objects::TraceableObject;
 
 

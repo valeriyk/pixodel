@@ -27,7 +27,7 @@ impl WfObj {
 		}
 	}
 	
-	pub fn iter(&self) -> IterWfObj {
+	fn iter(&self) -> IterWfObj {
 		IterWfObj {
 			wfobj: &self,
 			oidx: 0,
@@ -35,6 +35,7 @@ impl WfObj {
 			sidx: 0,
 		}
 	}
+	
 }
 
 impl TraceableObject for WfObj {
@@ -57,6 +58,8 @@ impl TraceableObject for WfObj {
 		let model_to_world = scale_xyz(&rxyz, &self.scale);
 		model_to_world
 	}
+	
+	
 	
 	// fn get_model_mtx(&self) -> &Mat4f {
 	//     &self.model_to_world
