@@ -1,5 +1,4 @@
 use crate::geometry::Point4d;
-use crate::geometry::Point3d;
 
 pub struct Mat4f {
     pub raw: [[f32; 4]; 4],
@@ -17,6 +16,11 @@ impl Mat4f {
                 [0.0, 0.0, 1.0, 0.0],
                 [0.0, 0.0, 0.0, 1.0],
             ],
+        }
+    }
+    pub fn from_rows(a: [f32; 4], b: [f32; 4], c: [f32; 4], d: [f32; 4]) -> Self {
+        Mat4f {
+            raw: [a, b, c, d],
         }
     }
 }

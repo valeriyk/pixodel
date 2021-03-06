@@ -1,5 +1,6 @@
-use crate::geometry::{Point3d, Vector3d};
+use crate::geometry::{Point3d, Vector3d, min_of_three_f32, max_of_three_f32};
 use crate::scene::objects::TraceablePrimitive;
+use crate::geometry::aabb::Aabb;
 
 #[derive(Copy, Clone)]
 pub struct Triangle {
@@ -10,8 +11,8 @@ pub struct Triangle {
 
 fn moller_trumbore(
     triangle: &Triangle,
-    ray_origin: Point3d,
-    ray_dir: Vector3d,
+    ray_origin: &Point3d,
+    ray_dir: &Vector3d,
 ) -> Option<(f32, f32, f32)> {
     const EPSILON: f32 = 0.001;
     let v0v1 = triangle.v[1] - triangle.v[0];
@@ -24,7 +25,7 @@ fn moller_trumbore(
     }
 
     let inv_det = 1.0 / det;
-    let tvec = ray_origin - triangle.v[0];
+    let tvec = *ray_origin - triangle.v[0];
     let u = tvec * pvec * inv_det;
 
     if u < 0.0 || u > 1.0 {
@@ -32,7 +33,7 @@ fn moller_trumbore(
     }
 
     let qvec = tvec.crossprod(&v0v1);
-    let v = ray_dir * qvec * inv_det;
+    let v = *ray_dir * qvec * inv_det;
     if v < 0.0 || u + v > 1.0 {
         return None;
     }
@@ -52,7 +53,7 @@ impl Triangle {
         }
     }
 
-    fn get_uv(&self, ray_origin: Point3d, ray_dir: Vector3d) -> Option<(f32, f32)> {
+    fn get_uv(&self, ray_origin: &Point3d, ray_dir: &Vector3d) -> Option<(f32, f32)> {
         if let Some((_, u, v)) = moller_trumbore(self, ray_origin, ray_dir) {
             Some((u, v))
         } else {
@@ -62,7 +63,7 @@ impl Triangle {
 }
 
 impl TraceablePrimitive for Triangle {
-    fn get_distance_to(&self, ray_origin: Point3d, ray_dir: Vector3d) -> Option<f32> {
+    fn get_distance_to(&self, ray_origin: &Point3d, ray_dir: &Vector3d) -> Option<f32> {
         if let Some((t, _, _)) = moller_trumbore(self, ray_origin, ray_dir) {
             Some(t)
         } else {
@@ -70,8 +71,23 @@ impl TraceablePrimitive for Triangle {
         }
     }
 
-    fn get_normal(&self, surface_pt: Point3d) -> Vector3d {
+    fn get_normal(&self, _: &Point3d) -> Vector3d {
         // Vec3f::new(0.0, 0.0, 0.0)
         self.normal
+    }
+    
+    fn get_bounding_box(&self) -> Aabb {
+        Aabb::from_point3d(
+            Point3d::from_coords(
+                min_of_three_f32(self.v[0].x, self.v[1].x, self.v[2].x),
+                min_of_three_f32(self.v[0].y, self.v[1].y, self.v[2].y),
+                min_of_three_f32(self.v[0].z, self.v[1].z, self.v[2].z),
+            ),
+            Point3d::from_coords(
+                max_of_three_f32(self.v[0].x, self.v[1].x, self.v[2].x),
+                max_of_three_f32(self.v[0].y, self.v[1].y, self.v[2].y),
+                max_of_three_f32(self.v[0].z, self.v[1].z, self.v[2].z),
+            ),
+        )
     }
 }

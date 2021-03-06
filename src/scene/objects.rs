@@ -1,12 +1,14 @@
 use crate::geometry::triangle::Triangle;
-use crate::geometry::{Mat4f, Point3d, Point4d, Vector3d};
+use crate::geometry::aabb::Aabb;
+use crate::geometry::{Mat4f, Point3d, Vector3d};
 
 pub(crate) mod wfobj;
 pub(crate) mod triangle;
 
 pub trait TraceablePrimitive {
-	fn get_distance_to(&self, ray_origin: Point3d, ray_dir: Vector3d) -> Option<f32>;
-	fn get_normal(&self, surface_pt: Point3d) -> Vector3d;
+	fn get_distance_to(&self, ray_origin: &Point3d, ray_dir: &Vector3d) -> Option<f32>;
+	fn get_normal(&self, surface_pt: &Point3d) -> Vector3d;
+	fn get_bounding_box(&self) -> Aabb;
 }
 
 pub trait TraceableObject {

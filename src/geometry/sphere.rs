@@ -1,5 +1,6 @@
 use crate::geometry::{Point3d, Vector3d};
 use crate::scene::objects::TraceablePrimitive;
+use crate::geometry::aabb::Aabb;
 
 #[derive(Copy, Clone)]
 pub struct Sphere {
@@ -14,9 +15,9 @@ impl Sphere {
 }
 
 impl TraceablePrimitive for Sphere {
-    fn get_distance_to(&self, ray_origin: Point3d, ray_dir: Vector3d) -> Option<f32> {
-        let l = self.center - ray_origin;
-        let tca = l * ray_dir;
+    fn get_distance_to(&self, ray_origin: &Point3d, ray_dir: &Vector3d) -> Option<f32> {
+        let l = self.center - *ray_origin;
+        let tca = l * *ray_dir;
         let d_squared = l * l - tca * tca;
         if d_squared > (self.radius * self.radius) {
             return None;
@@ -33,7 +34,14 @@ impl TraceablePrimitive for Sphere {
         }
     }
 
-    fn get_normal(&self, surface_pt: Point3d) -> Vector3d {
-        (surface_pt - self.center).normalize()
+    fn get_normal(&self, surface_pt: &Point3d) -> Vector3d {
+        (*surface_pt - self.center).normalize()
+    }
+    
+    fn get_bounding_box(&self) -> Aabb {
+        Aabb::from_point3d(
+            self.center - self.radius,
+            self.center + self.radius,
+        )
     }
 }

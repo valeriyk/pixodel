@@ -1,5 +1,3 @@
-use std::iter::FromIterator;
-use std::ops::{Add, Index, Mul};
 use crate::geometry::Vector3d;
 
 #[derive(Copy, Clone)]
@@ -40,7 +38,7 @@ impl core::convert::From<Point4d> for Point3d {
 	}
 }
 
-impl<'a> core::ops::Add<&'a Point3d> for &'a Point3d {
+impl core::ops::Add<Point3d> for Point3d {
 	type Output = Vector3d;
 	
 	fn add(self, other: Self) -> Self::Output {
@@ -52,14 +50,40 @@ impl<'a> core::ops::Add<&'a Point3d> for &'a Point3d {
 	}
 }
 
+impl core::ops::Add<f32> for Point3d {
+	type Output = Self;
+	
+	fn add(self, other: f32) -> Self::Output {
+		Self::Output {
+			x: self.x + other,
+			y: self.y + other,
+			z: self.z + other,
+		}
+	}
+}
+
 impl core::ops::Sub<Point3d> for Point3d {
 	type Output = Vector3d;
 	
+	#[inline]
 	fn sub(self, other: Self) -> Self::Output {
 		Self::Output {
 			x: self.x - other.x,
 			y: self.y - other.y,
 			z: self.z - other.z,
+		}
+	}
+}
+
+impl core::ops::Sub<f32> for Point3d {
+	type Output = Self;
+	
+	#[inline]
+	fn sub(self, other: f32) -> Self::Output {
+		Self::Output {
+			x: self.x - other,
+			y: self.y - other,
+			z: self.z - other,
 		}
 	}
 }
@@ -221,3 +245,8 @@ impl std::ops::IndexMut<usize> for Point4d {
 	}
 }
 
+// impl std::cmp::Ord for Point3d {
+// 	fn cmp(&self, other: &Self) -> Ordering {
+// 		unimplemented!()
+// 	}
+// }

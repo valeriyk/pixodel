@@ -1,5 +1,3 @@
-use std::iter::FromIterator;
-use std::ops::{Add, Index, Mul};
 use crate::geometry::Point3d;
 
 #[derive(Copy, Clone)]
@@ -89,6 +87,7 @@ impl core::ops::Add<Point3d> for Vector3d {
 impl core::ops::Mul<Vector3d> for Vector3d {
     type Output = f32;
 
+    #[inline]
     fn mul(self, other: Self) -> Self::Output {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
