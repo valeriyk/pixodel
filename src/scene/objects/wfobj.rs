@@ -40,6 +40,18 @@ impl WfObj {
 		}
 	}
 	
+	pub fn rotate(mut self, x: f32, y: f32, z: f32) -> Self {
+		self.rotation = [x, y, z];
+		self
+	}
+	pub fn scale(mut self, x: f32, y: f32, z: f32) -> Self {
+		self.scale = [x, y, z];
+		self
+	}
+	pub fn translate(mut self, x: f32, y: f32, z: f32) -> Self {
+		self.translation = [x, y, z];
+		self
+	}
 }
 
 impl TraceableObject for WfObj {
@@ -69,15 +81,15 @@ impl TraceableObject for WfObj {
 	//     &self.model_to_world
 	// }
 	
-	fn rotate(&mut self, x: f32, y: f32, z: f32) {
-		self.rotation = [x, y, z];
-	}
-	fn scale(&mut self, x: f32, y: f32, z: f32) {
-		self.scale = [x, y, z];
-	}
-	fn translate(&mut self, x: f32, y: f32, z: f32) {
-		self.translation = [x, y, z];
-	}
+	// fn rotate(&mut self, x: f32, y: f32, z: f32) {
+	// 	self.rotation = [x, y, z];
+	// }
+	// fn scale(&mut self, x: f32, y: f32, z: f32) {
+	// 	self.scale = [x, y, z];
+	// }
+	// fn translate(&mut self, x: f32, y: f32, z: f32) {
+	// 	self.translation = [x, y, z];
+	// }
 }
 
 pub struct IterWfObj<'a> {

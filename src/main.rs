@@ -112,8 +112,8 @@ fn fbuf_thread_proc(rx: mpsc::Receiver<TileMsg>) {
     }
 }
 
-fn create_scene() -> Scene {
-    let mut scene = Scene::new();
+fn create_scene_mesh() -> Mesh {
+    
 
     // scene.add_obj(Box::new(Sphere::new(Vec3f::new(10.0, 10.0, -100.0), 10.0)));
     // scene.add_obj(Box::new(Sphere::new(
@@ -142,44 +142,46 @@ fn create_scene() -> Scene {
     //scene.add_wavefront_obj("models/african_head.obj");
 
     let head_model = Arc::new(wfobj::new_wavefront_obj("models/african_head.obj").unwrap());
-    let mut head_0 = scene::WfObj::new(Arc::clone(&head_model));
-    let mut head_1 = scene::WfObj::new(Arc::clone(&head_model));
-    head_0.scale(7.0, 7.0, 7.0);
-    head_1.scale(7.0, 7.0, 7.0);
-    head_0.rotate(0.0, 0.0, 0.0);
-    head_1.rotate(0.0, 0.0, 0.0);
-    head_0.translate(3.0, 0.0, -30.0);
-    head_1.translate(-3.0, 0.0, -30.0);
-    scene.add_obj(Box::new(head_0));
-    scene.add_obj(Box::new(head_1));
+    let head_0= scene::WfObj::new(Arc::clone(&head_model))
+        .scale(7.0, 7.0, 7.0)
+        .rotate(0.0, 0.0, 0.0)
+        .translate(3.0, 0.0, -30.0);
+    let head_1= scene::WfObj::new(Arc::clone(&head_model))
+        .scale(7.0, 7.0, 7.0)
+        .rotate(0.0, 0.0, 0.0)
+        .translate(-3.0, 0.0, -30.0);
+    
+    
     
     let cube_model = Arc::new(wfobj::new_wavefront_obj("models/cube.obj").unwrap());
-    let mut cube_0 = scene::WfObj::new(Arc::clone(&cube_model));
-    let mut cube_1 = scene::WfObj::new(Arc::clone(&cube_model));
-    cube_0.scale(4.0, 4.0, 4.0);
-    cube_1.scale(4.0, 4.0, 4.0);
-    cube_0.rotate(45.0, 45.0, 0.0);
-    cube_1.rotate(45.0, 45.0, 0.0);
-    cube_0.translate(5.0, 0.0, -30.0);
-    cube_1.translate(-5.0, 0.0, -30.0);
-    //scene.add_obj(Box::new(cube_0));
-    //scene.add_obj(Box::new(cube_1));
+    let cube_0 = scene::WfObj::new(Arc::clone(&cube_model))
+        .scale(4.0, 4.0, 4.0)
+        .rotate(45.0, 45.0, 0.0)
+        .translate(5.0, 0.0, -30.0);
+    let cube_1 = scene::WfObj::new(Arc::clone(&cube_model))
+        .scale(4.0, 4.0, 4.0)
+        .rotate(45.0, 45.0, 0.0)
+        .translate(-5.0, 0.0, -30.0);
     
     let mut tri_0 = scene::TriObj::new(Triangle::new(
         Point3d::from_coords(-1.0, 1.0, 0.0),
         Point3d::from_coords(0.0, -1.0, 0.0),
         Point3d::from_coords(1.0, 0.8, 0.0),
-    ));
-    tri_0.scale(10.0, 10.0, 10.0);
-    tri_0.rotate(-45.0, 0.0, 0.0);
-    tri_0.translate(0.0, 0.0, -40.0);
-    //scene.add_obj(Box::new(tri_0));
+    ))
+        .scale(10.0, 10.0, 10.0)
+        .rotate(-45.0, 0.0, 0.0)
+        .translate(0.0, 0.0, -40.0);
     
-    //scene.add_light(Light::new(Point3d::from_coords(-50.0, -50.0, 50.0), 0.5));
-    //scene.add_light(Light::new(Point3d::from_coords(10.0, 200.0, 20.0), 0.5));
-    scene.add_light(Light::new(Point3d::from_coords(1.0, 0.0, 10.0), 0.5));
-
-    scene
+    Scene::new()
+        .add_obj(Box::new(head_0))
+        .add_obj(Box::new(head_1))
+        //.add_obj(Box::new(cube_0))
+        //.add_obj(Box::new(cube_1))
+        //.add_obj(Box::new(tri_0))
+        //.add_light(Light::new(Point3d::from_coords(-50.0, -50.0, 50.0), 0.5))
+        //.add_light(Light::new(Point3d::from_coords(10.0, 200.0, 20.0), 0.5))
+        .add_light(Light::new(Point3d::from_coords(1.0, 0.0, 10.0), 0.5))
+        .to_mesh()
 }
 
 fn main() {
@@ -187,8 +189,10 @@ fn main() {
 
     let (tx, rx) = mpsc::channel();
 
-    let mesh_glob = Arc::new(create_scene().to_mesh());
+    let mesh_glob = Arc::new(create_scene_mesh());
 
+    //let mut fbuf = TiledFrame::new(FRAME_WIDTH, FRAME_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
+    
     for i in 0..NUM_SLAVES {
         let tx_slv_to_fbuf = mpsc::Sender::clone(&tx);
         let mesh = mesh_glob.clone();
@@ -207,6 +211,8 @@ fn main() {
 
     let handle = thread::spawn(|| fbuf_thread_proc(rx));
     thread_handles.push(handle);
+    
+    
 
     for handle in thread_handles {
         handle.join().unwrap();

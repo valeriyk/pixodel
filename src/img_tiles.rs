@@ -38,6 +38,83 @@ impl TilesLayout {
     }
 }
 
+// pub struct TiledFrame {
+//     pub width: u32,
+//     pub height: u32,
+//     default_tile_width: u32,
+//     default_tile_height: u32,
+//     fringe_tile_width: u32,
+//     fringe_tile_height: u32,
+//     pub num_tiles_in_row: u32,
+//     pub num_tiles_in_col: u32,
+//     has_narrow_tiles: bool,
+//     fbuf: Vec<(u8, u8, u8)>,
+// }
+//
+// impl TiledFrame {
+//     pub fn new(
+//         frame_width: u32,
+//         frame_height: u32,
+//         tile_width: u32,
+//         tile_height: u32,
+//     ) -> TiledFrame {
+//         let num_tiles_in_row = ((frame_width as f32 / tile_width as f32).ceil()) as u32;
+//         let num_tiles_in_col = ((frame_height as f32 / tile_height as f32).ceil()) as u32;
+//         let fringe_tile_width = frame_width - (num_tiles_in_row - 1) * tile_width;
+//         let fringe_tile_height = frame_height - (num_tiles_in_col - 1) * tile_height;
+//         let has_narrow_tiles =
+//             (fringe_tile_width != tile_width) || (fringe_tile_height != tile_height);
+//         TiledFrame {
+//             width: frame_width,
+//             height: frame_height,
+//             default_tile_width: tile_width,
+//             default_tile_height: tile_height,
+//             fringe_tile_width,
+//             fringe_tile_height,
+//             num_tiles_in_row,
+//             num_tiles_in_col,
+//             has_narrow_tiles,
+//             fbuf: Vec::with_capacity((frame_width * frame_height) as usize),
+//         }
+//     }
+//
+//     pub fn detach_tile(self, tile_idx_hor: usize, tile_idx_vert: usize) -> Tile2 {
+//         let mut width = self.default_tile_width;
+//         let mut height = self.default_tile_height;
+//         let origin_x = tile_idx_hor as u32 * self.default_tile_width;
+//         let origin_y = tile_idx_vert as u32 * self.default_tile_height;
+//         if (tile_idx_hor as u32 == self.num_tiles_in_row - 1) && self.has_narrow_tiles {
+//             width = self.fringe_tile_width;
+//         }
+//         if (tile_idx_vert as u32 == self.num_tiles_in_col - 1) && self.has_narrow_tiles {
+//             height = self.fringe_tile_height;
+//         }
+//         let mut tbuf = Vec::new();
+//         for i in origin_y..origin_y + height {
+//             for j in origin_x..origin_x + width {
+//                 tbuf.push(self.fbuf[(i * self.width + j) as usize]);
+//             }
+//         }
+//         Tile2 {
+//             origin_x,
+//             origin_y,
+//             width,
+//             height,
+//             tbuf,
+//         }
+//     }
+//
+//     pub fn merge_tile(self, mut tile: Tile2) {
+//         for i in (tile.origin_y..tile.origin_y + tile.height).rev() {
+//             for j in (tile.origin_x..tile.origin_x + tile.width).rev() {
+//                 self.fbuf[(i * self.width + j) as usize] = tile.tbuf.pop().unwrap();
+//             }
+//         }
+//     }
+// }
+
+
+
 pub struct Tile {
     pub row_idx: u32,
     pub col_idx: u32,
@@ -78,6 +155,61 @@ impl core::fmt::Debug for Tile {
             .finish()
     }
 }
+
+// pub struct Tile2 {
+//     pub origin_x: u32,
+//     pub origin_y: u32,
+//     pub width: u32,
+//     pub height: u32,
+//     pub tbuf: Vec<(u8, u8, u8)>,
+// }
+//
+// impl Tile2 {
+//     pub fn new(origin_x: u32, origin_y: u32, width: u32, height: u32) -> Tile2 {
+//         Tile2 {
+//             origin_x,
+//             origin_y,
+//             width,
+//             height,
+//             tbuf: Vec::with_capacity((width * height) as usize),
+//         }
+//     }
+// }
+
+// pub struct TiledFrameIter<'a> {
+//     frame: &'a TiledFrame,
+//     tile_idx: usize,
+// }
+//
+// impl <'a> Iterator for TiledFrameIter<'a> {
+//     type Item = Tile2;
+//
+//     fn next(&mut self) -> Option<Self::Item> {
+//         if self.seq_idx < self.num_tiles_in_row * self.num_tiles_in_col {
+//             let row_idx = self.seq_idx % self.layout.num_tiles_in_row;
+//             let col_idx = self.seq_idx / self.layout.num_tiles_in_row;
+//             let mut width = self.layout.default_tile_width;
+//             let mut height = self.layout.default_tile_height;
+//             if (row_idx == self.layout.num_tiles_in_row - 1) && self.layout.has_narrow_tiles {
+//                 width = self.layout.fringe_tile_width;
+//             }
+//             if (col_idx == self.layout.num_tiles_in_col - 1) && self.layout.has_narrow_tiles {
+//                 height = self.layout.fringe_tile_height;
+//             }
+//             let t = Tile {
+//                 row_idx,
+//                 col_idx,
+//                 width,
+//                 height,
+//                 vbuf: Vec::with_capacity((width * height) as usize),
+//             };
+//             self.seq_idx += self.stride;
+//             Some(t)
+//         } else {
+//             None
+//         }
+//     }
+// }
 
 pub struct TileGenerator {
     stride: u32,
@@ -124,6 +256,52 @@ impl Iterator for TileGenerator {
         }
     }
 }
+
+// pub struct TileGenerator2 {
+//     stride: u32,
+//     seq_idx: u32,
+//     frame: TiledFrame,
+// }
+//
+// impl TileGenerator2 {
+//     pub fn new(initial_idx: u32, stride: u32, frame: &TiledFrame) -> TileGenerator2 {
+//         TileGenerator2 {
+//             seq_idx: initial_idx,
+//             stride,
+//             frame: *frame,
+//         }
+//     }
+// }
+//
+// impl Iterator for TileGenerator2 {
+//     type Item = Tile;
+//
+//     fn next(&mut self) -> Option<Self::Item> {
+//         if self.seq_idx < self.layout.num_tiles_in_row * self.layout.num_tiles_in_col {
+//             let row_idx = self.seq_idx % self.layout.num_tiles_in_row;
+//             let col_idx = self.seq_idx / self.layout.num_tiles_in_row;
+//             let mut width = self.layout.default_tile_width;
+//             let mut height = self.layout.default_tile_height;
+//             if (row_idx == self.layout.num_tiles_in_row - 1) && self.layout.has_narrow_tiles {
+//                 width = self.layout.fringe_tile_width;
+//             }
+//             if (col_idx == self.layout.num_tiles_in_col - 1) && self.layout.has_narrow_tiles {
+//                 height = self.layout.fringe_tile_height;
+//             }
+//             let t = Tile {
+//                 row_idx,
+//                 col_idx,
+//                 width,
+//                 height,
+//                 vbuf: Vec::with_capacity((width * height) as usize),
+//             };
+//             self.seq_idx += self.stride;
+//             Some(t)
+//         } else {
+//             None
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

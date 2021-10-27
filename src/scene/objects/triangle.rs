@@ -30,6 +30,19 @@ impl TriObj {
 			idx: 0,
 		}
 	}
+	
+	pub fn rotate(mut self, x: f32, y: f32, z: f32) -> Self {
+		self.rotation = [x, y, z];
+		self
+	}
+	pub fn scale(mut self, x: f32, y: f32, z: f32) -> Self {
+		self.scale = [x, y, z];
+		self
+	}
+	pub fn translate(mut self, x: f32, y: f32, z: f32) -> Self {
+		self.translation = [x, y, z];
+		self
+	}
 }
 
 impl TraceableObject for TriObj {
@@ -57,16 +70,6 @@ impl TraceableObject for TriObj {
 	// fn get_model_mtx(&self) -> &Mat4f {
 	//     &self.model_to_world
 	// }
-	
-	fn rotate(&mut self, x: f32, y: f32, z: f32) {
-		self.rotation = [x, y, z];
-	}
-	fn scale(&mut self, x: f32, y: f32, z: f32) {
-		self.scale = [x, y, z];
-	}
-	fn translate(&mut self, x: f32, y: f32, z: f32) {
-		self.translation = [x, y, z];
-	}
 }
 
 pub struct IterTriObj<'a> {

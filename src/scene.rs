@@ -36,12 +36,14 @@ impl Scene {
         }
     }
 
-    pub fn add_obj(&mut self, obj: Box<dyn TraceableObject>) {
+    pub fn add_obj(mut self, obj: Box<dyn TraceableObject>) -> Self {
         self.objects.push(obj);
+        self
     }
 
-    pub fn add_light(&mut self, light: Light) {
+    pub fn add_light(mut self, light: Light) -> Self {
         self.lights.push(light);
+        self
     }
 
     pub fn to_mesh(&self) -> Mesh {
