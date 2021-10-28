@@ -1,5 +1,5 @@
 use crate::geometry::{Point3d, Vector3d, min_of_three_f32, max_of_three_f32};
-use crate::scene::objects::TraceablePrimitive;
+use crate::geometry::TraceablePrimitive;
 use crate::geometry::aabb::Aabb;
 
 #[derive(Copy, Clone)]

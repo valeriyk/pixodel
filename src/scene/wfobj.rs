@@ -4,33 +4,21 @@ use std::sync::Arc;
 use std::fs::File;
 use std::io::Read;
 
-use crate::scene::objects::TraceableObject;
+use crate::scene::IntoTriangles;
 use crate::geometry::triangle::Triangle;
 use crate::geometry::{Mat4f, Point3d, Point4d};
-use crate::geometry::matrix_transform;
 //use crate::geometry::matrix_transform::*;
 
 pub struct WfObj {
 	model: Arc<ObjSet>,
-	scale: [f32; 3],
-	rotation: [f32; 3],
-	translation: [f32; 3],
-	//model_to_world: Mat4f,
-	// world_to_model: Mat4f,
 }
 
 impl WfObj {
 	pub fn new(model: Arc<ObjSet>) -> Self {
 		WfObj {
 			model,
-			scale: [0.0, 0.0, 0.0],
-			rotation: [0.0, 0.0, 0.0],
-			translation: [0.0, 0.0, 0.0],
-			//model_to_world: Mat4f::identity(),
-			// world_to_model: Mat4f::identity(),
 		}
 	}
-	
 	fn iter(&self) -> IterWfObj {
 		IterWfObj {
 			wfobj: &self,
@@ -39,57 +27,12 @@ impl WfObj {
 			sidx: 0,
 		}
 	}
-	
-	pub fn rotate(mut self, x: f32, y: f32, z: f32) -> Self {
-		self.rotation = [x, y, z];
-		self
-	}
-	pub fn scale(mut self, x: f32, y: f32, z: f32) -> Self {
-		self.scale = [x, y, z];
-		self
-	}
-	pub fn translate(mut self, x: f32, y: f32, z: f32) -> Self {
-		self.translation = [x, y, z];
-		self
-	}
 }
 
-impl TraceableObject for WfObj {
+impl IntoTriangles for WfObj {
 	fn triangulate(&self) -> Vec<Triangle> {
-		let model_to_world = self.set_model_mtx();
-		self.iter().map(|t|
-			Triangle::new(
-				Point3d::from(&model_to_world * Point4d::from(t.v[0])),
-				Point3d::from(&model_to_world * Point4d::from(t.v[1])),
-				Point3d::from(&model_to_world * Point4d::from(t.v[2])),
-			)
-		).collect()
+		self.iter().collect()
 	}
-	
-	fn set_model_mtx(&self) -> Mat4f {
-		let t = matrix_transform::translate_xyz(&Mat4f::identity(), &self.translation);
-		let rx = matrix_transform::rotate_about_x(&t, self.rotation[0]);
-		let rxy = matrix_transform::rotate_about_y(&rx, self.rotation[1]);
-		let rxyz = matrix_transform::rotate_about_z(&rxy, self.rotation[2]);
-		let model_to_world = matrix_transform::scale_xyz(&rxyz, &self.scale);
-		model_to_world
-	}
-	
-	
-	
-	// fn get_model_mtx(&self) -> &Mat4f {
-	//     &self.model_to_world
-	// }
-	
-	// fn rotate(&mut self, x: f32, y: f32, z: f32) {
-	// 	self.rotation = [x, y, z];
-	// }
-	// fn scale(&mut self, x: f32, y: f32, z: f32) {
-	// 	self.scale = [x, y, z];
-	// }
-	// fn translate(&mut self, x: f32, y: f32, z: f32) {
-	// 	self.translation = [x, y, z];
-	// }
 }
 
 pub struct IterWfObj<'a> {

@@ -1,5 +1,16 @@
 use crate::geometry::Vector3d;
 
+// #[derive(Copy, Clone)]
+// pub struct Point2d<T> {
+// 	x: T,
+// 	y: T,
+// }
+// impl Point2d<T> {
+// 	fn get_barycentric(self, t: [Triangle2d; 3]) {
+//
+// 	}
+// }
+
 #[derive(Copy, Clone)]
 pub struct Point3d {
 	pub(crate) x: f32,

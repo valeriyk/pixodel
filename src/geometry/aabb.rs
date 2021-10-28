@@ -1,6 +1,6 @@
 use crate::geometry::{Point3d, Vector3d, min_of_two_f32, max_of_two_f32};
 use std::mem;
-use crate::scene::objects::TraceablePrimitive;
+use crate::geometry::TraceablePrimitive;
 
 #[derive(Copy, Clone)]
 

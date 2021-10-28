@@ -23,6 +23,73 @@ impl Mat4f {
             raw: [a, b, c, d],
         }
     }
+	pub fn rotate_about_x(&self, angle_deg: f32) -> Self {
+		let sin = angle_deg.to_radians().sin();
+		let cos = angle_deg.to_radians().cos();
+		let rx = Mat4f {
+			raw: [
+				[1.0, 0.0, 0.0, 0.0],
+				[0.0, cos, -sin, 0.0],
+				[0.0, sin, cos, 0.0],
+				[0.0, 0.0, 0.0, 1.0],
+			],
+		};
+		self * &rx
+	}
+	
+	pub fn rotate_about_y(&self, angle_deg: f32) -> Self {
+		let sin = angle_deg.to_radians().sin();
+		let cos = angle_deg.to_radians().cos();
+		let ry = Mat4f {
+			raw: [
+				[cos, 0.0, sin, 0.0],
+				[0.0, 1.0, 0.0, 0.0],
+				[-sin, 0.0, cos, 0.0],
+				[0.0, 0.0, 0.0, 1.0],
+			],
+		};
+		self * &ry
+	}
+	
+	
+	pub fn rotate_about_z(&self, angle_deg: f32) -> Self {
+		let sin = angle_deg.to_radians().sin();
+		let cos = angle_deg.to_radians().cos();
+		let rz = Mat4f {
+			raw: [
+				[cos, -sin, 0.0, 0.0],
+				[sin, cos, 0.0, 0.0],
+				[0.0, 0.0, 1.0, 0.0],
+				[0.0, 0.0, 0.0, 1.0],
+			],
+		};
+		self * &rz
+	}
+	
+	pub fn translate_xyz(&self, translation: &[f32]) -> Self {
+		let t = Mat4f {
+			raw: [
+				[1.0, 0.0, 0.0, translation[0]],
+				[0.0, 1.0, 0.0, translation[1]],
+				[0.0, 0.0, 1.0, translation[2]],
+				[0.0, 0.0, 0.0, 1.0],
+			],
+		};
+		self * &t
+	}
+	
+	pub fn scale_xyz(&self, scale: &[f32]) -> Self {
+		let s = Mat4f {
+			raw: [
+				[scale[0], 0.0, 0.0, 0.0],
+				[0.0, scale[1], 0.0, 0.0],
+				[0.0, 0.0, scale[2], 0.0],
+				[0.0, 0.0, 0.0, 1.0],
+			],
+		};
+		self * &s
+	}
+	
 }
 
 impl<'a, 'b> core::ops::Mul<&'b Mat4f> for &'a Mat4f {
@@ -56,3 +123,4 @@ impl<'a> core::ops::Mul<Point4d> for &'a Mat4f {
         p
     }
 }
+
