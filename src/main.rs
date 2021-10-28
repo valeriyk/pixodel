@@ -1,18 +1,20 @@
 extern crate image;
 
+use std::ops::Deref;
 use std::sync::{Arc, mpsc};
 use std::thread;
 
 use image::{GenericImage, ImageBuffer};
 
+use scene::{IntoTriangles, mesh, tracing};
 use scene::light::Light;
-use scene::tracing;
+use scene::mesh::Mesh;
 
-use crate::geometry::{Point3d, Mat4f, Point4d};
+use crate::geometry::{Mat4f, Point3d, Point4d};
 use crate::geometry::triangle::Triangle;
 use crate::img_tiles::{Tile, TileGenerator, TilesLayout};
-use crate::scene::{Mesh, objects::TraceableObject, Scene};
-use crate::scene::objects::wfobj;
+use crate::scene::{Scene, WfObj};
+use crate::scene::wfobj;
 
 mod img_tiles;
 mod geometry;
@@ -57,7 +59,7 @@ fn slv_thread_proc(slave_idx: u32, num_slaves: u32, tx: mpsc::Sender<TileMsg>, s
                 let ray_orig = Point3d::from_coords(0.0, 0.0, 0.0);
                 let ray_dir = ray_aim - ray_orig;
 
-                let color = tracing::cast_ray(&ray_orig, &ray_dir.normalize(), &scene);
+                let color = scene.cast_ray(&ray_orig, &ray_dir.normalize());
 
                 tile.vbuf.push(color);
                 tile.vbuf.push(u8::MIN);
@@ -141,40 +143,41 @@ fn create_scene_mesh() -> Mesh {
     //scene.add_wavefront_obj("models/cube2.obj");
     //scene.add_wavefront_obj("models/african_head.obj");
 
-    let head_model = Arc::new(wfobj::new_wavefront_obj("models/african_head.obj").unwrap());
-    let head_0= scene::WfObj::new(Arc::clone(&head_model))
+    let head_model = scene::WfObj::new(Arc::new(wfobj::new_wavefront_obj("models/african_head.obj").unwrap()));
+    let head_0 = scene::SceneObj::new(&head_model)
         .scale(7.0, 7.0, 7.0)
         .rotate(0.0, 0.0, 0.0)
         .translate(3.0, 0.0, -30.0);
-    let head_1= scene::WfObj::new(Arc::clone(&head_model))
+    let head_1 = scene::SceneObj::new(&head_model)
         .scale(7.0, 7.0, 7.0)
         .rotate(0.0, 0.0, 0.0)
         .translate(-3.0, 0.0, -30.0);
     
     
     
-    let cube_model = Arc::new(wfobj::new_wavefront_obj("models/cube.obj").unwrap());
-    let cube_0 = scene::WfObj::new(Arc::clone(&cube_model))
+    let cube_model = scene::WfObj::new(Arc::new(wfobj::new_wavefront_obj("models/cube.obj").unwrap()));
+    let cube_0 = scene::SceneObj::new(&cube_model)
         .scale(4.0, 4.0, 4.0)
         .rotate(45.0, 45.0, 0.0)
         .translate(5.0, 0.0, -30.0);
-    let cube_1 = scene::WfObj::new(Arc::clone(&cube_model))
+    let cube_1 = scene::SceneObj::new(&cube_model)
         .scale(4.0, 4.0, 4.0)
         .rotate(45.0, 45.0, 0.0)
         .translate(-5.0, 0.0, -30.0);
     
-    let mut tri_0 = scene::TriObj::new(Triangle::new(
+    let triangle_model = scene::TriObj::new(Triangle::new(
         Point3d::from_coords(-1.0, 1.0, 0.0),
         Point3d::from_coords(0.0, -1.0, 0.0),
         Point3d::from_coords(1.0, 0.8, 0.0),
-    ))
+    ));
+    let tri_0 = scene::SceneObj::new(&triangle_model)
         .scale(10.0, 10.0, 10.0)
         .rotate(-45.0, 0.0, 0.0)
         .translate(0.0, 0.0, -40.0);
     
     Scene::new()
-        .add_obj(Box::new(head_0))
-        .add_obj(Box::new(head_1))
+        .add_obj(head_0)
+        .add_obj(head_1)
         //.add_obj(Box::new(cube_0))
         //.add_obj(Box::new(cube_1))
         //.add_obj(Box::new(tri_0))
