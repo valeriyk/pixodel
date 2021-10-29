@@ -3,6 +3,7 @@ use crate::geometry::aabb::Aabb;
 use crate::geometry::triangle::Triangle;
 use crate::scene::{Centroid, shading};
 use crate::scene::light::Light;
+use crate::VtxShader;
 
 pub struct Mesh {
     pub lights: Vec<Light>,
@@ -73,7 +74,9 @@ impl Mesh {
         node_idx
     }
     
-    pub fn cast_ray(&self, ray_orig: &Point3d, ray_dir: &Vector3d) -> u8 {
+    pub fn cast_ray<F>(&self, ray_orig: &Point3d, ray_dir: &Vector3d, vtx_shader: F) -> u8
+    where F: FnOnce(Point3d, Point3d, Vector3d, &Vec<Light>) -> f32 + Send + 'static
+    {
         // let mut distance_to_nearest_obj1 = f32::MAX;
         // let mut nearest_obj_idx1: Option<usize> = None;
         
@@ -133,8 +136,7 @@ impl Mesh {
         if let Some(idx) = nearest_obj_idx2 {
             let surface_pt = (*ray_orig + *ray_dir) * distance_to_nearest_obj2;
             let norm_to_surface: Vector3d = self.triangles[idx].get_normal(&surface_pt);
-            let mut illumination =
-                shading::get_phong_illumination(surface_pt, *ray_orig, norm_to_surface, &self.lights);
+            let mut illumination = vtx_shader(surface_pt, *ray_orig, norm_to_surface, &self.lights);
             if illumination > 1.0 {
                 illumination = 1.0
             }

@@ -12,8 +12,8 @@ pub use crate::scene::wfobj::WfObj;
 pub mod light;
 pub mod wfobj;
 pub mod triangle;
-pub mod tracing;
-mod shading;
+//pub mod tracing;
+pub(crate) mod shading;
 mod bvhtree;
 pub(crate) mod mesh;
 

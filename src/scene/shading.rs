@@ -1,7 +1,7 @@
 use crate::geometry::{Point3d, Vector3d};
 use crate::scene::light::Light;
 
-pub(crate) fn get_phong_illumination(
+pub(crate) fn phong(
 	surface_pt: Point3d,
 	camera_pt: Point3d,
 	surface_normal: Vector3d,
