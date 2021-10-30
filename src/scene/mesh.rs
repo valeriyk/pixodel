@@ -85,9 +85,9 @@ impl Mesh {
         const BG_COLOR: [u8; 3] = [30u8; 3];
         const DEPTH_THRESHOLD: usize = 0;
         
-        if depth < DEPTH_THRESHOLD {
-            return BG_COLOR;
-        }
+        // if depth > DEPTH_THRESHOLD {
+        //     return BG_COLOR;
+        // }
         
         let mut distance_to_nearest_obj2 = f32::MAX;
         let mut nearest_obj_idx2: Option<usize> = None;
@@ -148,14 +148,15 @@ impl Mesh {
     
             let refl_dir = reflection_dir(surface_normal, -*ray_dir).normalize(); //TODO: normalize really needed?
             
-            let refl_color = self.cast_ray(&surface_pt, &refl_dir, vtx_shader, depth + 1);
+            let refl_color = BG_COLOR;//self.cast_ray(&surface_pt, &refl_dir, vtx_shader, depth + 1);
             
             let mut illumination = vtx_shader(surface_pt, *ray_orig, surface_normal, &self.lights);
             if illumination > 1.0 {
                 illumination = 1.0
             }
             let self_color = [(illumination * u8::MAX as f32) as u8; 3];
-            [refl_color[0] + self_color[0], 0, 0]
+            //[refl_color[0] + self_color[0]; 3]
+            self_color
         } else {
             BG_COLOR
         }

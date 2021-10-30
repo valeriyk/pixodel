@@ -21,6 +21,7 @@ use crate::geometry::triangle::Triangle;
 //use crate::img_tiles::{Tile, TileGenerator, TilesLayout};
 use crate::scene::{Scene};
 use crate::scene::wfobj;
+use crate::img_tiles::TiledFrame;
 
 mod img_tiles;
 mod geometry;
@@ -31,8 +32,8 @@ mod scene;
 const FRAME_WIDTH: u32 = 640;
 const FRAME_HEIGHT: u32 = 640;
 
-// const TILE_WIDTH: u32 = 32;
-// const TILE_HEIGHT: u32 = TILE_WIDTH;
+const TILE_WIDTH: u32 = 32;
+const TILE_HEIGHT: u32 = TILE_WIDTH;
 
 fn create_scene_mesh() -> Mesh {
     
@@ -110,6 +111,19 @@ fn create_scene_mesh() -> Mesh {
 //type VtxShader = Box<dyn FnOnce(Point3d, Point3d, Vector3d, &Vec<Light>) -> f32 + Send + 'static>;
 
 
+// impl PixelTrait for PixelFormat {
+//     fn clear(self) -> PixelFormat {
+//         let p = match self {
+//             PixelFormat::Rgb(p) => p = [0u8; 3],
+//             PixelFormat::Rgba(p) => [0u8; 4],
+//         };
+//     }
+// }
+// #[derive(Copy, Clone)]
+// struct Pixel {
+//
+// }
+
 fn main() {
     //let mut thread_handles = vec![];
     
@@ -132,7 +146,7 @@ fn main() {
     
     let ray_orig = Point3d::from_coords(0.0, 0.0, 0.0);
     
-    let recursion_depth = 4;
+    let recursion_depth = 0;
     
     loop {
         //let mesh_glob = Arc::new(create_scene_mesh());
@@ -141,6 +155,8 @@ fn main() {
         let timer = Instant::now();
     
         let mut fbuf: Vec<[u8; 3]> = vec![[0, 0, 0]; (frame_width * frame_height) as usize];
+        
+        //let fbuf = TiledFrame(frame_width, frame_height, TILE_WIDTH, TILE_HEIGHT);
         fbuf.par_iter_mut().enumerate().for_each(|(idx, pix)| {
             let x = idx as u32 % frame_width;
             let y = idx as u32 / frame_width;
