@@ -1,15 +1,15 @@
 use crate::geometry::{Point3d, TraceablePrimitive, Vector3d};
 use crate::geometry::aabb::Aabb;
 use crate::geometry::triangle::Triangle;
-use crate::scene::{Centroid, shading};
+use crate::scene::{Centroid};
 use crate::scene::light::Light;
-use crate::VtxShader;
+//use crate::VtxShader;
 
 pub struct Mesh {
     pub lights: Vec<Light>,
     pub triangles: Vec<Triangle>,
-    vtx_normals: Vec<Vector3d>,
-    txt_coords: Vec<Point3d>,
+    //vtx_normals: Vec<Vector3d>,
+    //txt_coords: Vec<Point3d>,
     pub b_boxes: Vec<Aabb>,
     // pub centroids: Vec<Point3d>,
     // pub bounding_box: Aabb,
@@ -17,13 +17,18 @@ pub struct Mesh {
     bvh_nodes: Vec<Node>,
 }
 
+fn reflection_dir(surface_normal: Vector3d, surface_to_camera: Vector3d) -> Vector3d {
+    let l2n_cos = surface_to_camera * surface_normal;
+    surface_normal * l2n_cos * 2.0 - surface_to_camera
+}
+
 impl Mesh {
     pub fn new() -> Self {
         Mesh {
             lights: Vec::new(),
             triangles: Vec::new(),
-            vtx_normals: Vec::new(),
-            txt_coords: Vec::new(),
+            //vtx_normals: Vec::new(),
+            //txt_coords: Vec::new(),
             b_boxes: Vec::new(),
             // centroids: Vec::new(),
             // bounding_box: Aabb::new(),
@@ -47,7 +52,7 @@ impl Mesh {
             node_bbox = node_bbox.get_superset(self.b_boxes[idx]);
         }
         
-        let mut n = Node::new(node_bbox);
+        let n = Node::new(node_bbox);
         self.bvh_nodes.push(n);
         let node_idx = self.bvh_nodes.len() - 1;
         
@@ -74,16 +79,20 @@ impl Mesh {
         node_idx
     }
     
-    pub fn cast_ray<F>(&self, ray_orig: &Point3d, ray_dir: &Vector3d, vtx_shader: F) -> u8
-    where F: FnOnce(Point3d, Point3d, Vector3d, &Vec<Light>) -> f32 + Send + 'static
+    pub fn cast_ray<F>(&self, ray_orig: &Point3d, ray_dir: &Vector3d, vtx_shader: &F, depth: usize) -> [u8; 3]
+    where F: FnOnce(Point3d, Point3d, Vector3d, &Vec<Light>) -> f32 + Send + Copy + 'static
     {
-        // let mut distance_to_nearest_obj1 = f32::MAX;
-        // let mut nearest_obj_idx1: Option<usize> = None;
+        const BG_COLOR: [u8; 3] = [30u8; 3];
+        const DEPTH_THRESHOLD: usize = 0;
+        
+        if depth < DEPTH_THRESHOLD {
+            return BG_COLOR;
+        }
         
         let mut distance_to_nearest_obj2 = f32::MAX;
         let mut nearest_obj_idx2: Option<usize> = None;
         
-        const BG_COLOR: u8 = 30u8;
+        
         
         /*for (idx, triangle) in mesh.triangles.iter().enumerate() {
 			let distance_to_obj = triangle.get_distance_to(ray_orig, ray_dir);
@@ -135,12 +144,18 @@ impl Mesh {
         
         if let Some(idx) = nearest_obj_idx2 {
             let surface_pt = (*ray_orig + *ray_dir) * distance_to_nearest_obj2;
-            let norm_to_surface: Vector3d = self.triangles[idx].get_normal(&surface_pt);
-            let mut illumination = vtx_shader(surface_pt, *ray_orig, norm_to_surface, &self.lights);
+            let surface_normal: Vector3d = self.triangles[idx].get_normal(&surface_pt);
+    
+            let refl_dir = reflection_dir(surface_normal, -*ray_dir).normalize(); //TODO: normalize really needed?
+            
+            let refl_color = self.cast_ray(&surface_pt, &refl_dir, vtx_shader, depth + 1);
+            
+            let mut illumination = vtx_shader(surface_pt, *ray_orig, surface_normal, &self.lights);
             if illumination > 1.0 {
                 illumination = 1.0
             }
-            (illumination * u8::MAX as f32) as u8
+            let self_color = [(illumination * u8::MAX as f32) as u8; 3];
+            [refl_color[0] + self_color[0], 0, 0]
         } else {
             BG_COLOR
         }

@@ -3,28 +3,30 @@ extern crate rayon;
 
 use rayon::prelude::*;
 
-use std::ops::Deref;
-use std::sync::{Arc, mpsc};
-use std::thread;
+use std::time::Instant;
 
-use image::{GenericImage, ImageBuffer, Rgb};
+//use std::ops::Deref;
+use std::sync::{Arc};
+//use std::thread;
 
-use scene::{IntoTriangles, mesh};
+use image::{ImageBuffer, Rgb};
+
+//use scene::{IntoTriangles, mesh};
 use scene::light::Light;
 use scene::mesh::Mesh;
 use scene::shading;
 
-use crate::geometry::{Mat4f, Point3d, Point4d, Vector3d};
+use crate::geometry::{Mat4f, Point3d, Point4d};
 use crate::geometry::triangle::Triangle;
-use crate::img_tiles::{Tile, TileGenerator, TilesLayout};
-use crate::scene::{Scene, WfObj};
+//use crate::img_tiles::{Tile, TileGenerator, TilesLayout};
+use crate::scene::{Scene};
 use crate::scene::wfobj;
 
 mod img_tiles;
 mod geometry;
 mod scene;
 
-const NUM_SLAVES: u32 = 8;
+//const NUM_SLAVES: u32 = 8;
 
 const FRAME_WIDTH: u32 = 640;
 const FRAME_HEIGHT: u32 = 640;
@@ -74,11 +76,11 @@ fn create_scene_mesh() -> Mesh {
     
     
     let cube_model = scene::WfObj::new(Arc::new(wfobj::new_wavefront_obj("models/cube.obj").unwrap()));
-    let cube_0 = scene::SceneObj::new(&cube_model)
+    let _cube_0 = scene::SceneObj::new(&cube_model)
         .scale(4.0, 4.0, 4.0)
         .rotate(45.0, 45.0, 0.0)
         .translate(5.0, 0.0, -30.0);
-    let cube_1 = scene::SceneObj::new(&cube_model)
+    let _cube_1 = scene::SceneObj::new(&cube_model)
         .scale(4.0, 4.0, 4.0)
         .rotate(45.0, 45.0, 0.0)
         .translate(-5.0, 0.0, -30.0);
@@ -88,7 +90,7 @@ fn create_scene_mesh() -> Mesh {
         Point3d::from_coords(0.0, -1.0, 0.0),
         Point3d::from_coords(1.0, 0.8, 0.0),
     ));
-    let tri_0 = scene::SceneObj::new(&triangle_model)
+    let _tri_0 = scene::SceneObj::new(&triangle_model)
         .scale(10.0, 10.0, 10.0)
         .rotate(-45.0, 0.0, 0.0)
         .translate(0.0, 0.0, -40.0);
@@ -105,7 +107,8 @@ fn create_scene_mesh() -> Mesh {
         .to_mesh()
 }
 
-type VtxShader = Box<dyn FnOnce(Point3d, Point3d, Vector3d, &Vec<Light>) -> f32 + Send + 'static>;
+//type VtxShader = Box<dyn FnOnce(Point3d, Point3d, Vector3d, &Vec<Light>) -> f32 + Send + 'static>;
+
 
 fn main() {
     //let mut thread_handles = vec![];
@@ -129,10 +132,14 @@ fn main() {
     
     let ray_orig = Point3d::from_coords(0.0, 0.0, 0.0);
     
+    let recursion_depth = 4;
+    
     loop {
         //let mesh_glob = Arc::new(create_scene_mesh());
         let mesh_glob = create_scene_mesh();
-        
+    
+        let timer = Instant::now();
+    
         let mut fbuf: Vec<[u8; 3]> = vec![[0, 0, 0]; (frame_width * frame_height) as usize];
         fbuf.par_iter_mut().enumerate().for_each(|(idx, pix)| {
             let x = idx as u32 % frame_width;
@@ -142,12 +149,16 @@ fn main() {
             let color = mesh_glob.cast_ray(
                 &ray_orig,
                 &ray_dir.normalize(),
-                |a, b, c, d| shading::phong(a, b, c, d),
+                &|a, b, c, d| shading::phong(a, b, c, d),
+                recursion_depth,
             );
-            *pix = [color, 0_u8, 0_u8];
+            *pix = color;
         });
     
-        let mut fbuf = fbuf.iter().flatten().map(|x| *x).collect();
+        println!("Elapsed time: {:.2?}", timer.elapsed());
+        
+        //let fbuf = fbuf.iter().flatten().map(|x| *x).collect();
+        let fbuf = fbuf.iter().flat_map(|x| *x).collect();
     
         let mut img: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::from_vec(frame_width, frame_height, fbuf).unwrap();
         image::imageops::flip_vertical_in_place(&mut img);

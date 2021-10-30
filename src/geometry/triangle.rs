@@ -20,7 +20,7 @@ impl Triangle {
         }
     }
 
-    fn get_uv(&self, ray_origin: &Point3d, ray_dir: &Vector3d) -> Option<(f32, f32)> {
+    fn _get_uv(&self, ray_origin: &Point3d, ray_dir: &Vector3d) -> Option<(f32, f32)> {
         if let Some((_, u, v)) = self.moller_trumbore(ray_origin, ray_dir) {
             Some((u, v))
         } else {

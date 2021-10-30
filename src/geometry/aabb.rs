@@ -23,10 +23,10 @@ impl Aabb {
 		}
 	}
 	
-	pub fn get_min(&self) -> Point3d {
+	pub fn _get_min(&self) -> Point3d {
 		self.min
 	}
-	pub fn get_max(&self) -> Point3d {
+	pub fn _get_max(&self) -> Point3d {
 		self.max
 	}
 	

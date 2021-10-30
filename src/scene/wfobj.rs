@@ -6,7 +6,7 @@ use std::io::Read;
 
 use crate::scene::IntoTriangles;
 use crate::geometry::triangle::Triangle;
-use crate::geometry::{Mat4f, Point3d, Point4d};
+use crate::geometry::{Point3d};
 //use crate::geometry::matrix_transform::*;
 
 pub struct WfObj {
@@ -91,7 +91,7 @@ pub fn new_wavefront_obj(path: &str) -> Result<ObjSet, ParseError> {
 	let file_content = {
 		let mut f = File::open(path).unwrap();
 		let mut content = String::new();
-		f.read_to_string(&mut content);
+		f.read_to_string(&mut content).unwrap();
 		content
 	};
 	obj::parse(file_content)

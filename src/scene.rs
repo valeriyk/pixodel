@@ -1,10 +1,10 @@
-use std::ops::Range;
+//use std::ops::Range;
 
 use light::Light;
 use mesh::Mesh;
 
-use crate::geometry::{Mat4f, Point3d, Point4d, TraceablePrimitive, Vector3d};
-use crate::geometry::aabb::Aabb;
+use crate::geometry::{Mat4f, Point3d, Point4d, TraceablePrimitive};
+//use crate::geometry::aabb::Aabb;
 use crate::geometry::triangle::Triangle;
 pub use crate::scene::triangle::TriObj;
 pub use crate::scene::wfobj::WfObj;
@@ -23,12 +23,12 @@ pub struct Scene {
 }
 
 
-#[repr(C, align(32))]
-struct VtxAttr {
-    vtx_coords: Point3d,
-    norm_coords: Vector3d,
-    txt_coords: Point3d,
-}
+// #[repr(C, align(32))]
+// struct VtxAttr {
+//     vtx_coords: Point3d,
+//     norm_coords: Vector3d,
+//     txt_coords: Point3d,
+// }
 
 
 impl Scene {
@@ -50,7 +50,7 @@ impl Scene {
     pub fn to_mesh(&self) -> Mesh {
         let mut mesh = Mesh::new();
         //let mut tmp: Vec<BvhInfo> = Vec::new();
-        for mut obj in &self.objects {
+        for obj in &self.objects {
             for t in obj.apply_model_transform().iter() {
                 mesh.triangles.push(t.clone());
                 mesh.b_boxes.push(t.get_bounding_box());

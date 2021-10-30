@@ -9,7 +9,7 @@ pub struct Sphere {
 }
 
 impl Sphere {
-    pub fn new(center: Point3d, radius: f32) -> Sphere {
+    pub fn _new(center: Point3d, radius: f32) -> Sphere {
         Sphere { center, radius }
     }
 }
