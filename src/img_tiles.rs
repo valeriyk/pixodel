@@ -1,15 +1,21 @@
 pub trait PixelTrait: Copy + Clone + PartialEq + core::fmt::Debug {
 	fn zero() -> Self;
+	fn set_rgb(r: u8, g: u8, b: u8) -> Self;
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
-struct Rgb {
-	pixel: [u8; 3],
+pub(crate) struct Rgb {
+	pub(crate) pixel: [u8; 3],
 }
 impl PixelTrait for Rgb {
 	fn zero() -> Rgb {
 		Rgb {
 			pixel: [0, 0, 0],
+		}
+	}
+	fn set_rgb(r: u8, g: u8, b: u8) -> Self {
+		Rgb {
+			pixel: [r, g, b],
 		}
 	}
 }
@@ -22,6 +28,12 @@ impl PixelTrait for Rgba {
 	fn zero() -> Rgba {
 		Rgba {
 			pixel: [0, 0, 0, 0],
+		}
+	}
+	
+	fn set_rgb(r: u8, g: u8, b: u8) -> Self {
+		Rgba {
+			pixel: [r, g, b, 255],
 		}
 	}
 }
@@ -38,7 +50,7 @@ pub struct TiledFrame<T: PixelTrait> {
     num_tiles_in_row: u32,
     num_tiles_in_col: u32,
     has_narrow_tiles: bool,
-    pixels: Vec<T>,
+    pub(crate) pixels: Vec<T>,
 }
 
 impl<T: PixelTrait> TiledFrame<T> {
@@ -69,7 +81,7 @@ impl<T: PixelTrait> TiledFrame<T> {
 		}
 	}
 	
-	fn iter(&self) -> TiledFrameIter<T> {
+	pub fn iter(&self) -> TiledFrameIter<T> {
 		TiledFrameIter::<T>::new(self)
 	}
 
@@ -95,7 +107,7 @@ impl<T: PixelTrait> TiledFrame<T> {
 		tile
 	}
 	
-	fn merge_tile(&mut self, tile: &Tile<T>) {
+	pub(crate) fn merge_tile(&mut self, tile: &Tile<T>) {
         for y in tile.origin_y..tile.origin_y + tile.height {
             for x in tile.origin_x..tile.origin_x + tile.width {
 				let tile_idx = (y - tile.origin_y) * tile.width + (x - tile.origin_x);
@@ -159,7 +171,53 @@ impl<T: PixelTrait> Tile<T> {
 			pixels: vec![T::zero(); (width * height) as usize],
         }
     }
+	
+	pub fn iter_mut(&mut self) -> TileIter<T> {
+		TileIter::<T>::new(self)
+	}
 }
+
+pub struct TileIter<'a, T: PixelTrait> {
+	tile: &'a Tile<T>,
+	pixel_idx_hor: usize,
+	pixel_idx_vert: usize,
+}
+
+impl<'a, T: PixelTrait> TileIter<'a, T> {
+	fn new(tile: &'a Tile<T>) -> TileIter<T> {
+		TileIter {
+			tile,
+			pixel_idx_hor: 0,
+			pixel_idx_vert: 0,
+		}
+	}
+}
+
+impl <'a, T: PixelTrait> Iterator for TileIter<'a, T> {
+	type Item = (usize, usize, T);
+	
+	fn next(&mut self) -> Option<Self::Item> {
+		if self.pixel_idx_vert < self.tile.height as usize &&
+			self.pixel_idx_hor < self.tile.width as usize
+		{
+			let pixel_idx = self.pixel_idx_vert * self.tile.width as usize + self.pixel_idx_vert;
+			let pixel = self.tile.pixels[pixel_idx as usize];
+			let result = (self.pixel_idx_hor, self.pixel_idx_vert, pixel);
+			if self.pixel_idx_hor == (self.tile.width - 1) as usize {
+				self.pixel_idx_hor = 0;
+				self.pixel_idx_vert += 1;
+			}
+			else {
+				self.pixel_idx_hor += 1;
+			}
+			Some(result)
+		}
+		else {
+			None
+		}
+	}
+}
+///////////////////////////////////////////////////////////////
 
 pub struct TiledFrameIter<'a, T: PixelTrait> {
     frame: &'a TiledFrame<T>,
@@ -296,6 +354,9 @@ mod tests {
 	impl PixelTrait for u8 {
 		fn zero() -> u8 {
 			0
+		}
+		fn set_rgb(r: u8, g: u8, b: u8) -> Self {
+			(r as u32 + g as u32 + b as u32 / 3) as u8
 		}
 	}
 	

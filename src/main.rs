@@ -21,7 +21,8 @@ use crate::geometry::triangle::Triangle;
 //use crate::img_tiles::{Tile, TileGenerator, TilesLayout};
 use crate::scene::{Scene};
 use crate::scene::wfobj;
-use crate::img_tiles::TiledFrame;
+use crate::img_tiles::{TiledFrame, PixelTrait};
+use std::ops::Range;
 
 mod img_tiles;
 mod geometry;
@@ -32,8 +33,8 @@ mod scene;
 const FRAME_WIDTH: u32 = 640;
 const FRAME_HEIGHT: u32 = 640;
 
-const TILE_WIDTH: u32 = 32;
-const TILE_HEIGHT: u32 = TILE_WIDTH;
+const TILE_WIDTH: usize = 32;
+const TILE_HEIGHT: usize = TILE_WIDTH;
 
 fn create_scene_mesh() -> Mesh {
     
@@ -124,6 +125,11 @@ fn create_scene_mesh() -> Mesh {
 //
 // }
 
+type TileRange = Range<usize>;
+fn frame_splitter(r: TileRange) -> (TileRange, Option<TileRange>){
+
+}
+
 fn main() {
     //let mut thread_handles = vec![];
     
@@ -153,28 +159,75 @@ fn main() {
         let mesh_glob = create_scene_mesh();
     
         let timer = Instant::now();
-    
-        let mut fbuf: Vec<[u8; 3]> = vec![[0, 0, 0]; (frame_width * frame_height) as usize];
         
-        //let fbuf = TiledFrame(frame_width, frame_height, TILE_WIDTH, TILE_HEIGHT);
-        fbuf.par_iter_mut().enumerate().for_each(|(idx, pix)| {
-            let x = idx as u32 % frame_width;
-            let y = idx as u32 / frame_width;
-            let ray_aim = Point3d::from(&screen_to_world * Point4d::from_coords(x as f32, y as f32, -1.0, 1.0));
-            let ray_dir = ray_aim - ray_orig;
-            let color = mesh_glob.cast_ray(
-                &ray_orig,
-                &ray_dir.normalize(),
-                &|a, b, c, d| shading::phong(a, b, c, d),
-                recursion_depth,
+        // let num_tiles_in_row = ((frame_width as f32 / TILE_WIDTH as f32).ceil()) as u32;
+        // let num_tiles_in_col = ((frame_height as f32 / TILE_HEIGHT as f32).ceil()) as u32;
+        // let num_tiles = num_tiles_in_row * num_tiles_in_col;
+        // let tile_size = TILE_WIDTH * TILE_HEIGHT;
+        //
+        // let frame_row_buf = vec![vec![img_tiles::Rgb::zero(); frame_width as usize]; frame_height as usize];
+        // let tile_arr = vec![vec![img_tiles::Rgb::zero(); tile_size]; num_of_tiles];
+        // let a = frame_row_buf
+        //     .iter()
+        //     .for_each(|a| a
+        //         .chunks(TILE_WIDTH)
+        //         .enumerate()
+        //         .for_each(|(idx, &b)| tile_arr[idx][idx].push(b))
+        //     );
+        //
+        // map(|(idx, val)| tile_idx = frame2tile_map(frame_idx))
+        //
+        //
+        // let mut fbuf: Vec<[u8; 3]> = vec![[0, 0, 0]; (frame_width * frame_height) as usize];
+        // fbuf
+        //     .chunks(TILE_WIDTH)
+        //     .enumerate()
+        //     .for_each(|(idx, row)| );
+        
+        let mut fbuf = TiledFrame::<img_tiles::Rgb>::new(frame_width, frame_height, TILE_WIDTH as u32, TILE_HEIGHT as u32);
+        
+        // fbuf.iter().map(|mut tile| {
+        //         // let x = idx as u32 % frame_width;
+        //         // let y = idx as u32 / frame_width;
+        //         tile.iter_mut().for_each(|(x, y, mut pixel)| {
+        //             let ray_aim = Point3d::from(&screen_to_world * Point4d::from_coords(x as f32, y as f32, -1.0, 1.0));
+        //             let ray_dir = ray_aim - ray_orig;
+        //             let color = mesh_glob.cast_ray(
+        //                 &ray_orig,
+        //                 &ray_dir.normalize(),
+        //                 &|a, b, c, d| shading::phong(a, b, c, d),
+        //                 recursion_depth,
+        //             );
+        //             pixel = color;
+        //         });
+        //     }),
+        //
+        // );
+        
+        rayon::iter::split(fbuf.iter(), frame_splitter)
+            .for_each(|sub_range|
+                sub_range.for_each(|mut tile|
+                    tile.iter_mut().for_each(|(x, y, mut pixel)| {
+                       let ray_aim = Point3d::from(&screen_to_world * Point4d::from_coords(x as f32, y as f32, -1.0, 1.0));
+                       let ray_dir = ray_aim - ray_orig;
+                       let color = mesh_glob.cast_ray(
+                           &ray_orig,
+                           &ray_dir.normalize(),
+                           &|a, b, c, d| shading::phong(a, b, c, d),
+                           recursion_depth,
+                       );
+                       pixel = color;
+                    })
+                )
             );
-            *pix = color;
-        });
     
         println!("Elapsed time: {:.2?}", timer.elapsed());
         
-        //let fbuf = fbuf.iter().flatten().map(|x| *x).collect();
-        let fbuf = fbuf.iter().flat_map(|x| *x).collect();
+        
+        
+        // //let fbuf = fbuf.iter().flatten().map(|x| *x).collect();
+        // let fbuf = fbuf.iter().flat_map(|x| x).collect();
+        let fbuf = fbuf.pixels.into_iter().flat_map(|x| x.pixel).collect();
     
         let mut img: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::from_vec(frame_width, frame_height, fbuf).unwrap();
         image::imageops::flip_vertical_in_place(&mut img);

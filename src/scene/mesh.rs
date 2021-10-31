@@ -3,6 +3,8 @@ use crate::geometry::aabb::Aabb;
 use crate::geometry::triangle::Triangle;
 use crate::scene::{Centroid};
 use crate::scene::light::Light;
+use crate::img_tiles::PixelTrait;
+use crate::img_tiles;
 //use crate::VtxShader;
 
 pub struct Mesh {
@@ -79,10 +81,14 @@ impl Mesh {
         node_idx
     }
     
-    pub fn cast_ray<F>(&self, ray_orig: &Point3d, ray_dir: &Vector3d, vtx_shader: &F, depth: usize) -> [u8; 3]
-    where F: FnOnce(Point3d, Point3d, Vector3d, &Vec<Light>) -> f32 + Send + Copy + 'static
+    pub fn cast_ray<F, T>(&self, ray_orig: &Point3d, ray_dir: &Vector3d, vtx_shader: &F, depth: usize) -> T
+    where
+        F: FnOnce(Point3d, Point3d, Vector3d, &Vec<Light>) -> f32 + Send + Copy + 'static,
+        T: PixelTrait,
     {
-        const BG_COLOR: [u8; 3] = [30u8; 3];
+        //const BG_COLOR: [u8; 3] = [30u8; 3];
+        //const BG_COLOR: T = T::<T>::zero();
+        let BG_COLOR = T::zero();
         const DEPTH_THRESHOLD: usize = 0;
         
         // if depth > DEPTH_THRESHOLD {
@@ -156,7 +162,8 @@ impl Mesh {
             }
             let self_color = [(illumination * u8::MAX as f32) as u8; 3];
             //[refl_color[0] + self_color[0]; 3]
-            self_color
+            //self_color
+            T::set_rgb(self_color[0], self_color[1], self_color[2])
         } else {
             BG_COLOR
         }
