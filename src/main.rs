@@ -13,14 +13,15 @@ use image::{ImageBuffer, Rgb};
 
 //use scene::{IntoTriangles, mesh};
 use scene::light::Light;
-use scene::mesh::Mesh;
+//use scene::mesh::Mesh;
 use scene::shading;
 
 use crate::geometry::{Mat4f, Point3d, Point4d};
 use crate::geometry::triangle::Triangle;
 //use crate::img_tiles::{Tile, TileGenerator, TilesLayout};
-use crate::scene::{Scene};
+use crate::scene::{Scene, SphereObj};
 use crate::scene::wfobj;
+use crate::geometry::sphere::Sphere;
 
 mod img_tiles;
 mod geometry;
@@ -34,77 +35,64 @@ const FRAME_HEIGHT: u32 = 640;
 // const TILE_WIDTH: u32 = 32;
 // const TILE_HEIGHT: u32 = TILE_WIDTH;
 
-fn create_scene_mesh() -> Mesh {
+fn create_scene() -> Scene {
     
-
-    // scene.add_obj(Box::new(Sphere::new(Vec3f::new(10.0, 10.0, -100.0), 10.0)));
-    // scene.add_obj(Box::new(Sphere::new(
-    //     Vec3f::new(-10.0, -10.0, -100.0),
-    //     10.0,
-    // )));
-    // scene.add_obj(Box::new(Sphere::new(Vec3f::new(0.0, 0.0, -50.0), 5.0)));
-    // scene.add_obj(Box::new(Sphere::new(Vec3f::new(-50.0, 25.0, -100.0), 8.0)));
-    // scene.add_obj(Box::new(Sphere::new(Vec3f::new(50.0, -25.0, -100.0), 7.0)));
-    // scene.add_obj(Box::new(Triangle::new(
-    //     Vec3f::new(0.0, 10.0, -70.0),
-    //     Vec3f::new(-10.0, 15.0, -50.0),
-    //     Vec3f::new(2.0, -10.0, -100.0),
-    // )));
-    // scene.add_obj(Box::new(Triangle::new(
-    //     Vec3f::new(0.0, 10.0, -70.0),
-    //     Vec3f::new(2.0, -10.0, -100.0),
-    //     Vec3f::new(10.0, 15.0, -50.0),
-    // )));
-    // scene.add_obj(Box::new(Triangle::new(
-    //     Vec3f::new(10.0, 15.0, -50.0),
-    //     Vec3f::new(-10.0, 15.0, -50.0),
-    //     Vec3f::new(0.0, 10.0, -70.0),
-    // )));
-    //scene.add_wavefront_obj("models/cube2.obj");
-    //scene.add_wavefront_obj("models/african_head.obj");
-
-    let head_model = scene::WfObj::new(Arc::new(wfobj::new_wavefront_obj("models/african_head.obj").unwrap()));
-    let head_0 = scene::SceneObj::new(&head_model)
+    let head_model = Arc::new(scene::WfObj::new("models/african_head.obj"));
+    let head_0 = scene::SceneObj::new(head_model.clone())
         .scale(7.0, 7.0, 7.0)
         .rotate(0.0, 0.0, 0.0)
         .translate(3.0, 0.0, -30.0);
-    let head_1 = scene::SceneObj::new(&head_model)
+    let head_1 = scene::SceneObj::new(head_model.clone())
         .scale(7.0, 7.0, 7.0)
         .rotate(0.0, 0.0, 0.0)
         .translate(-3.0, 0.0, -30.0);
     
-    
-    
-    let cube_model = scene::WfObj::new(Arc::new(wfobj::new_wavefront_obj("models/cube.obj").unwrap()));
-    let _cube_0 = scene::SceneObj::new(&cube_model)
+    let cube_model = Arc::new(scene::WfObj::new("models/cube.obj"));
+    let _cube_0 = scene::SceneObj::new(cube_model.clone())
         .scale(4.0, 4.0, 4.0)
         .rotate(45.0, 45.0, 0.0)
         .translate(5.0, 0.0, -30.0);
-    let _cube_1 = scene::SceneObj::new(&cube_model)
+    let _cube_1 = scene::SceneObj::new(cube_model.clone())
         .scale(4.0, 4.0, 4.0)
         .rotate(45.0, 45.0, 0.0)
         .translate(-5.0, 0.0, -30.0);
     
-    let triangle_model = scene::TriObj::new(Triangle::new(
-        Point3d::from_coords(-1.0, 1.0, 0.0),
-        Point3d::from_coords(0.0, -1.0, 0.0),
-        Point3d::from_coords(1.0, 0.8, 0.0),
+    let triangle_model = Arc::new(scene::TriObj::new(
+        Triangle::new(
+            Point3d::from_coords(-1.0, 1.0, 0.0),
+            Point3d::from_coords(0.0, -1.0, 0.0),
+            Point3d::from_coords(1.0, 0.8, 0.0),
+        )
     ));
-    let _tri_0 = scene::SceneObj::new(&triangle_model)
+    let _tri_0 = scene::SceneObj::new(triangle_model)
         .scale(10.0, 10.0, 10.0)
         .rotate(-45.0, 0.0, 0.0)
         .translate(0.0, 0.0, -40.0);
     
-    Scene::new()
+    let sphere_model = Arc::new(scene::SphereObj::new(
+        Sphere::new(
+            Point3d::from_coords(0.0, 0.0, -20.0),
+            10.0
+        )
+    ));
+    let sphere_0 = scene::SceneObj::new(sphere_model)
+        .scale(1.0, 1.0, 1.0);
+    
+    let mut scene = Scene::new()
         .add_obj(head_0)
         .add_obj(head_1)
+        //.add_obj(sphere_0)
         //.add_obj(Box::new(cube_0))
         //.add_obj(Box::new(cube_1))
         //.add_obj(Box::new(tri_0))
         //.add_light(Light::new(Point3d::from_coords(-50.0, -50.0, 50.0), 0.5))
         //.add_light(Light::new(Point3d::from_coords(10.0, 200.0, 20.0), 0.5))
-        .add_light(Light::new(Point3d::from_coords(1.0, 0.0, 10.0), 0.5))
-        .to_mesh()
+        .add_light(Light::new(Point3d::from_coords(1.0, 0.0, 10.0), 0.5));
+    
+    let timer = Instant::now();
+    scene.accelerate();
+    println!("BVH construction took: {:.2?}", timer.elapsed());
+    scene
 }
 
 //type VtxShader = Box<dyn FnOnce(Point3d, Point3d, Vector3d, &Vec<Light>) -> f32 + Send + 'static>;
@@ -136,8 +124,11 @@ fn main() {
     
     loop {
         //let mesh_glob = Arc::new(create_scene_mesh());
-        let mesh_glob = create_scene_mesh();
-    
+        
+        //let timer = Instant::now();
+        let mesh_glob = create_scene();
+        //println!("Elapsed time: {:.2?}", timer.elapsed());
+        
         let timer = Instant::now();
     
         let mut fbuf: Vec<[u8; 3]> = vec![[0, 0, 0]; (frame_width * frame_height) as usize];
@@ -155,7 +146,7 @@ fn main() {
             *pix = color;
         });
     
-        println!("Elapsed time: {:.2?}", timer.elapsed());
+        println!("Tracing took: {:.2?}", timer.elapsed());
         
         //let fbuf = fbuf.iter().flatten().map(|x| *x).collect();
         let fbuf = fbuf.iter().flat_map(|x| *x).collect();

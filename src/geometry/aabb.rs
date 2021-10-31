@@ -1,4 +1,4 @@
-use crate::geometry::{Point3d, Vector3d, min_of_two_f32, max_of_two_f32};
+use crate::geometry::{Point3d, Point4d, Vector3d, min_of_two_f32, max_of_two_f32, Mat4f};
 use std::mem;
 use crate::geometry::TraceablePrimitive;
 
@@ -49,7 +49,7 @@ impl Aabb {
 		Point3d::from_coords(
 			(self.min.x + self.max.x) * 0.5,
 			(self.min.y + self.max.y) * 0.5,
-			 (self.min.z + self.max.z) * 0.5,
+			(self.min.z + self.max.z) * 0.5,
 		)
 	}
 }
@@ -108,10 +108,17 @@ impl TraceablePrimitive for Aabb {
 	//fn intersect (&self, ray r)
 	
 	fn get_normal(&self, _: &Point3d) -> Vector3d {
-		Vector3d::new()
+		Vector3d::new() //TODO: how to find out normal to Aabb?
 	}
 	
 	fn get_bounding_box(&self) -> Aabb {
 		*self
+	}
+	
+	fn model_to_world(&self, model: &Mat4f) -> Self {
+		Aabb::from_point3d(
+			Point3d::from(model * Point4d::from(self.min)),
+			Point3d::from(model * Point4d::from(self.max))
+		)
 	}
 }

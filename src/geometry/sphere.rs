@@ -1,4 +1,4 @@
-use crate::geometry::{Point3d, Vector3d};
+use crate::geometry::{Point3d, Point4d, Vector3d, Mat4f};
 use crate::geometry::TraceablePrimitive;
 use crate::geometry::aabb::Aabb;
 
@@ -9,7 +9,7 @@ pub struct Sphere {
 }
 
 impl Sphere {
-    pub fn _new(center: Point3d, radius: f32) -> Sphere {
+    pub fn new(center: Point3d, radius: f32) -> Sphere {
         Sphere { center, radius }
     }
 }
@@ -42,6 +42,13 @@ impl TraceablePrimitive for Sphere {
         Aabb::from_point3d(
             self.center - self.radius,
             self.center + self.radius,
+        )
+    }
+    
+    fn model_to_world(&self, model: &Mat4f) -> Self {
+        Sphere::new(
+            Point3d::from(model * Point4d::from(self.center)),
+            self.radius, //TODO: need to scale it too!
         )
     }
 }

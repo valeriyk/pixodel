@@ -29,4 +29,5 @@ pub(crate) fn phong(
 		}
 	}
 	illumination
+	
 }

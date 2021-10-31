@@ -4,21 +4,29 @@ use std::sync::Arc;
 use std::fs::File;
 use std::io::Read;
 
-use crate::scene::IntoTriangles;
+//use crate::scene::{IntoTriangles, IntoPrimitives};
+use crate::scene::{IntoPrimitives};
 use crate::geometry::triangle::Triangle;
-use crate::geometry::{Point3d};
+use crate::geometry::{Point3d, PrimitiveType};
 //use crate::geometry::matrix_transform::*;
 
 pub struct WfObj {
-	model: Arc<ObjSet>,
+	model: ObjSet,
 }
 
 impl WfObj {
-	pub fn new(model: Arc<ObjSet>) -> Self {
+	pub fn new(path: &str) -> Self {
+		let file_content = {
+			let mut f = File::open(path).unwrap();
+			let mut content = String::new();
+			f.read_to_string(&mut content).unwrap();
+			content
+		};
 		WfObj {
-			model,
+			model: obj::parse(file_content).unwrap(),
 		}
 	}
+	
 	fn iter(&self) -> IterWfObj {
 		IterWfObj {
 			wfobj: &self,
@@ -29,12 +37,16 @@ impl WfObj {
 	}
 }
 
-impl IntoTriangles for WfObj {
-	fn triangulate(&self) -> Vec<Triangle> {
+// impl IntoTriangles for WfObj {
+// 	fn triangulate(&self) -> Vec<Triangle> {
+// 		self.iter().collect()
+// 	}
+// }
+impl IntoPrimitives for WfObj {
+	fn to_primitives(&self) -> Vec<PrimitiveType> {
 		self.iter().collect()
 	}
 }
-
 pub struct IterWfObj<'a> {
 	wfobj: &'a WfObj,
 	oidx: usize,
@@ -43,7 +55,7 @@ pub struct IterWfObj<'a> {
 }
 
 impl<'a> Iterator for IterWfObj<'a> {
-	type Item = Triangle;
+	type Item = PrimitiveType;
 	fn next(&mut self) -> Option<Self::Item> {
 		let object = self.wfobj.model.objects.get(self.oidx)?;
 		let geometry = object.geometry.get(self.gidx)?;
@@ -78,21 +90,10 @@ impl<'a> Iterator for IterWfObj<'a> {
 			self.oidx += 1;
 		}
 		
-		Some(Triangle::new(
+		Some(PrimitiveType::Triangle(Triangle::new(
 			Point3d::from_coords(a.x as f32, a.y as f32, a.z as f32),
 			Point3d::from_coords(b.x as f32, b.y as f32, b.z as f32),
 			Point3d::from_coords(c.x as f32, c.y as f32, c.z as f32),
-		))
+		)))
 	}
-}
-
-
-pub fn new_wavefront_obj(path: &str) -> Result<ObjSet, ParseError> {
-	let file_content = {
-		let mut f = File::open(path).unwrap();
-		let mut content = String::new();
-		f.read_to_string(&mut content).unwrap();
-		content
-	};
-	obj::parse(file_content)
 }

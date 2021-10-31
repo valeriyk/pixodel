@@ -1,4 +1,4 @@
-use crate::geometry::{Point3d, Vector3d, min_of_three_f32, max_of_three_f32};
+use crate::geometry::{Point3d, Point4d, Vector3d, min_of_three_f32, max_of_three_f32, Mat4f};
 use crate::geometry::TraceablePrimitive;
 use crate::geometry::aabb::Aabb;
 
@@ -84,6 +84,14 @@ impl TraceablePrimitive for Triangle {
                 max_of_three_f32(self.v[0].y, self.v[1].y, self.v[2].y),
                 max_of_three_f32(self.v[0].z, self.v[1].z, self.v[2].z),
             ),
+        )
+    }
+    
+    fn model_to_world(&self, model: &Mat4f) -> Self {
+        Triangle::new(
+            Point3d::from(model * Point4d::from(self.v[0])),
+            Point3d::from(model * Point4d::from(self.v[1])),
+            Point3d::from(model * Point4d::from(self.v[2])),
         )
     }
 }

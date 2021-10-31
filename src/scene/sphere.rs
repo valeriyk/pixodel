@@ -2,22 +2,23 @@
 use crate::geometry::triangle::Triangle;
 use crate::scene::IntoPrimitives;
 use crate::geometry::PrimitiveType;
+use crate::geometry::sphere::Sphere;
 //use crate::scene::IntoTriangles;
 
-pub struct TriObj {
-	model: Triangle,
+pub struct SphereObj {
+	model: Sphere,
 }
 
-impl TriObj {
-	pub fn new(model: Triangle) -> Self {
-		TriObj {
+impl SphereObj {
+	pub fn new(model: Sphere) -> Self {
+		SphereObj {
 			model,
 		}
 	}
 	
-	pub fn iter(&self) -> IterTriObj {
-		IterTriObj {
-			triobj: &self,
+	pub fn iter(&self) -> IterSphereObj {
+		IterSphereObj {
+			sphereobj: &self,
 			idx: 0,
 		}
 	}
@@ -28,23 +29,23 @@ impl TriObj {
 // 		self.iter().collect()
 // 	}
 // }
-impl IntoPrimitives for TriObj {
+impl IntoPrimitives for SphereObj {
 	fn to_primitives(&self) -> Vec<PrimitiveType> {
-		self.iter().map(|x| PrimitiveType::Triangle(x)).collect()
+		self.iter().map(|x| PrimitiveType::Sphere(x)).collect()
 	}
 }
 
-pub struct IterTriObj<'a> {
-	triobj: &'a TriObj,
+pub struct IterSphereObj<'a> {
+	sphereobj: &'a SphereObj,
 	idx: usize,
 }
 
-impl<'a> Iterator for IterTriObj<'a> {
-	type Item = Triangle;
+impl<'a> Iterator for IterSphereObj<'a> {
+	type Item = Sphere;
 	fn next(&mut self) -> Option<Self::Item> {
 		if self.idx == 0 {
 			self.idx += 1;
-			Some(self.triobj.model)
+			Some(self.sphereobj.model)
 		} else {
 			None
 		}
