@@ -49,6 +49,7 @@ pub trait TraceablePrimitive {
 	fn get_distance_to(&self, ray_origin: &Point3d, ray_dir: &Vector3d) -> Option<f32>;
 	fn get_normal(&self, surface_pt: &Point3d) -> Vector3d;
 	fn get_bounding_box(&self) -> Aabb;
+	fn get_centroid(&self) -> Point3d;
 	fn model_to_world(&self, model: &Mat4f) -> Self;
 }
 
@@ -60,29 +61,36 @@ pub enum PrimitiveType {
 impl TraceablePrimitive for PrimitiveType {
 	fn get_distance_to(&self, ray_origin: &Point3d, ray_dir: &Vector3d) -> Option<f32> {
 		match self {
-			PrimitiveType::Triangle(x) => x.get_distance_to(ray_origin, ray_dir),
-			PrimitiveType::Sphere(x) => x.get_distance_to(ray_origin, ray_dir),
+			PrimitiveType::Triangle(t) => t.get_distance_to(ray_origin, ray_dir),
+			PrimitiveType::Sphere(s) => s.get_distance_to(ray_origin, ray_dir),
 		}
 	}
 	
 	fn get_normal(&self, surface_pt: &Point3d) -> Vector3d {
 		match self {
-			PrimitiveType::Triangle(x) => x.get_normal(surface_pt),
-			PrimitiveType::Sphere(x) => x.get_normal(surface_pt),
+			PrimitiveType::Triangle(t) => t.get_normal(surface_pt),
+			PrimitiveType::Sphere(s) => s.get_normal(surface_pt),
 		}
 	}
 	
 	fn get_bounding_box(&self) -> Aabb {
 		match self {
-			PrimitiveType::Triangle(x) => x.get_bounding_box(),
-			PrimitiveType::Sphere(x) => x.get_bounding_box(),
+			PrimitiveType::Triangle(t) => t.get_bounding_box(),
+			PrimitiveType::Sphere(s) => s.get_bounding_box(),
+		}
+	}
+	
+	fn get_centroid(&self) -> Point3d {
+		match self {
+			PrimitiveType::Triangle(t) => t.get_centroid(),
+			PrimitiveType::Sphere(s) => s.get_centroid(),
 		}
 	}
 	
 	fn model_to_world(&self, model: &Mat4f) -> Self {
 		match self {
-			PrimitiveType::Triangle(x) => PrimitiveType::Triangle(x.model_to_world(model)),
-			PrimitiveType::Sphere(x) => PrimitiveType::Sphere(x.model_to_world(model)),
+			PrimitiveType::Triangle(t) => PrimitiveType::Triangle(t.model_to_world(model)),
+			PrimitiveType::Sphere(s) => PrimitiveType::Sphere(s.model_to_world(model)),
 		}
 	}
 }

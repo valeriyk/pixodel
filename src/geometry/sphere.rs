@@ -44,6 +44,9 @@ impl TraceablePrimitive for Sphere {
             self.center + self.radius,
         )
     }
+    fn get_centroid(&self) -> Point3d {
+        self.center
+    }
     
     fn model_to_world(&self, model: &Mat4f) -> Self {
         Sphere::new(

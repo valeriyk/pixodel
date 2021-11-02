@@ -56,14 +56,6 @@ impl Triangle {
         let t = v0v2 * qvec * inv_det;
         Some((t, u, v))
     }
-    
-    pub fn get_centroid(&self) -> Point3d {
-        Point3d::from_coords(
-            self.v.iter().map(|p| p.x).sum::<f32>() / 3.0,
-            self.v.iter().map(|p| p.y).sum::<f32>() / 3.0,
-            self.v.iter().map(|p| p.z).sum::<f32>() / 3.0,
-        )
-    }
 }
 
 impl TraceablePrimitive for Triangle {
@@ -92,6 +84,14 @@ impl TraceablePrimitive for Triangle {
                 max_of_three_f32(self.v[0].y, self.v[1].y, self.v[2].y),
                 max_of_three_f32(self.v[0].z, self.v[1].z, self.v[2].z),
             ),
+        )
+    }
+    
+    fn get_centroid(&self) -> Point3d {
+        Point3d::from_coords(
+            self.v.iter().map(|p| p.x).sum::<f32>() / 3.0,
+            self.v.iter().map(|p| p.y).sum::<f32>() / 3.0,
+            self.v.iter().map(|p| p.z).sum::<f32>() / 3.0,
         )
     }
     

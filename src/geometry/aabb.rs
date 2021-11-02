@@ -45,14 +45,6 @@ impl Aabb {
 			),
 		)
 	}
-	
-	pub fn get_centroid(&self) -> Point3d {
-		Point3d::from_coords(
-			(self.min.x + self.max.x) * 0.5,
-			(self.min.y + self.max.y) * 0.5,
-			(self.min.z + self.max.z) * 0.5,
-		)
-	}
 }
 
 impl core::ops::Add<Aabb> for Aabb {
@@ -141,6 +133,14 @@ impl TraceablePrimitive for Aabb {
 	
 	fn get_bounding_box(&self) -> Aabb {
 		*self
+	}
+	
+	fn get_centroid(&self) -> Point3d {
+		Point3d::from_coords(
+			(self.min.x + self.max.x) * 0.5,
+			(self.min.y + self.max.y) * 0.5,
+			(self.min.z + self.max.z) * 0.5,
+		)
 	}
 	
 	fn model_to_world(&self, model: &Mat4f) -> Self {

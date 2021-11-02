@@ -143,7 +143,7 @@ fn main() {
     
         let mut img: ImageBuffer<Rgb<u8>, Vec<u8>> = ImageBuffer::from_vec(frame_width, frame_height, fbuf).unwrap();
         image::imageops::flip_vertical_in_place(&mut img);
-        img.save("myimg.png").unwrap();
+        img.save("../myimg.png").unwrap();
         break;
     }
 }
