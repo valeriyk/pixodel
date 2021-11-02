@@ -77,17 +77,29 @@ impl OctreeInnerNode {
 	}
 }
 
-struct Octree {
+struct Octree<FX, FY, FZ> {
 	nodes: Vec<OctreeNode>,
 	max_node_capacity: usize,
+	sort_x: FX,
+	sort_y: FY,
+	sort_z: FZ,
 }
 
-impl Octree {
-	pub fn new(primitives: &[Triangle], max_node_capacity: usize) -> Octree {
-		let min_num_nodes = Octree::get_min_num_nodes(primitives.len(), max_node_capacity);
-		let mut octree = Octree {
+trait OctreeSortFunc: FnOnce(&Point3d, &Point3d) -> Ordering + Send + Copy + 'static {}
+
+impl<FX, FY, FZ> Octree<FX, FY, FZ>
+	where FX: FnOnce(&Point3d, &Point3d) -> Ordering + Send + Copy + 'static,
+		  FY: FnOnce(&Point3d, &Point3d) -> Ordering + Send + Copy + 'static,
+		  FZ: FnOnce(&Point3d, &Point3d) -> Ordering + Send + Copy + 'static,
+{
+	pub fn new(primitives: &[Triangle], max_node_capacity: usize, sort_x: FX, sort_y: FY, sort_z: FZ) -> Octree<FX, FY, FZ> {
+		let min_num_nodes = Octree::<FX, FY, FZ>::get_min_num_nodes(primitives.len(), max_node_capacity);
+		let mut octree = Octree::<FX, FY, FZ> {
 			nodes: Vec::with_capacity(min_num_nodes),
 			max_node_capacity,
+			sort_x,
+			sort_y,
+			sort_z,
 		};
 		
 		let mut items: Vec<OctreeItem> = primitives
@@ -99,6 +111,18 @@ impl Octree {
 		octree.build(primitives, &mut items, None);
 		octree
 	}
+	// pub fn sort_x_with(&mut self, sort: F) -> &mut Self {
+	// 	self.sort_x = sort;
+	// 	self
+	// }
+	// pub fn sort_y_with(&mut self, sort: F) -> &mut Self {
+	// 	self.sort_y = sort;
+	// 	self
+	// }
+	// pub fn sort_z_with(&mut self, sort: F) -> &mut Self {
+	// 	self.sort_z = sort;
+	// 	self
+	// }
 	fn get_min_num_nodes(num_elems: usize, max_node_capacity: usize) -> usize {
 		let depth = (num_elems as f32).log2().ceil() / (max_node_capacity as f32).log2().ceil();
 		let num_nodes = (8.0_f32.powf(depth + 1.0) - 1.0) / 7.0;
@@ -114,11 +138,6 @@ impl Octree {
 	}
 	
 	pub fn build(&mut self, primitives: &[Triangle], elems: &mut [OctreeItem], parent_idx: Option<usize>) -> (usize, Aabb) {
-		let sort_x = |p0: &Point3d, p1: &Point3d| p0.x.partial_cmp(&p1.x).unwrap();
-		let sort_y = |p0: &Point3d, p1: &Point3d| p0.y.partial_cmp(&p1.y).unwrap();
-		let sort_z = |p0: &Point3d, p1: &Point3d| p0.z.partial_cmp(&p1.z).unwrap();
-		// let sort_y = |p: Point3d| p.y;
-		// let sort_z = |p: Point3d| p.z;
 		if elems.len() <= self.max_node_capacity {
 			let leaf_idx = self.push_leaf(primitives, elems, parent_idx);
 			let leaf_bb = self.nodes[leaf_idx].get_bb();
@@ -127,13 +146,13 @@ impl Octree {
 		else {
 			let inner_idx = self.push_inner(elems, parent_idx);
 			
-			let (left, right) = Octree::sort_and_split(elems, sort_x);
-			let (left_bot, left_top) = Octree::sort_and_split(left, sort_y);
-			let (right_bot, right_top) = Octree::sort_and_split(right, sort_y);
-			let (left_bot_near, left_bot_far) = Octree::sort_and_split(left_bot, sort_z);
-			let (left_top_near, left_top_far) = Octree::sort_and_split(left_top, sort_z);
-			let (right_bot_near, right_bot_far) = Octree::sort_and_split(right_bot, sort_z);
-			let (right_top_near, right_top_far) = Octree::sort_and_split(right_top, sort_z);
+			let (left, right) = Octree::<FX, FY, FZ>::sort_and_split(elems, self.sort_x);
+			let (left_bot, left_top) = Octree::<FX, FY, FZ>::sort_and_split(left, self.sort_y);
+			let (right_bot, right_top) = Octree::<FX, FY, FZ>::sort_and_split(right, self.sort_y);
+			let (left_bot_near, left_bot_far) = Octree::<FX, FY, FZ>::sort_and_split(left_bot, self.sort_z);
+			let (left_top_near, left_top_far) = Octree::<FX, FY, FZ>::sort_and_split(left_top, self.sort_z);
+			let (right_bot_near, right_bot_far) = Octree::<FX, FY, FZ>::sort_and_split(right_bot, self.sort_z);
+			let (right_top_near, right_top_far) = Octree::<FX, FY, FZ>::sort_and_split(right_top, self.sort_z);
 			let mut array: [&mut [OctreeItem]; 8] = [
 				left_bot_near,
 				left_bot_far,
@@ -199,7 +218,11 @@ mod tests {
 				Point3d::from_coords(3.0, 3.0, 3.0),
 			)
 		);
-		let octree = Octree::new(&*triangles, max_node_capacity);
+		let sort_x = |p0: &Point3d, p1: &Point3d| p0.x.partial_cmp(&p1.x).unwrap();
+		let sort_y = |p0: &Point3d, p1: &Point3d| p0.y.partial_cmp(&p1.y).unwrap();
+		let sort_z = |p0: &Point3d, p1: &Point3d| p0.z.partial_cmp(&p1.z).unwrap();
+		let octree = Octree::new(&*triangles, max_node_capacity, sort_x, sort_y, sort_z);
+		
 		octree.nodes.iter().for_each(|n| println!("{}", n.get_bb()));
 	}
 }
