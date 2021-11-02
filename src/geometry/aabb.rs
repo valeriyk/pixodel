@@ -1,6 +1,7 @@
 use crate::geometry::{Point3d, Point4d, Vector3d, min_of_two_f32, max_of_two_f32, Mat4f};
 use std::mem;
 use crate::geometry::TraceablePrimitive;
+use std::fmt::{Display, Formatter};
 
 #[derive(Copy, Clone)]
 
@@ -30,7 +31,7 @@ impl Aabb {
 		self.max
 	}
 	
-	pub fn get_superset(&self, other: Self) -> Self {
+	fn get_superset(&self, other: Self) -> Self {
 		Aabb::from_point3d(
 			Point3d::from_coords(
 				min_of_two_f32(self.min.x, other.min.x),
@@ -51,6 +52,33 @@ impl Aabb {
 			(self.min.y + self.max.y) * 0.5,
 			(self.min.z + self.max.z) * 0.5,
 		)
+	}
+}
+
+impl core::ops::Add<Aabb> for Aabb {
+	type Output = Aabb;
+	
+	fn add(self, other: Self) -> Self::Output {
+		self.get_superset(other)
+	}
+}
+
+impl std::ops::AddAssign for Aabb {
+	fn add_assign(&mut self, rhs: Self) {
+		*self = *self + rhs;
+	}
+}
+
+impl std::iter::Sum for Aabb {
+	fn sum<I>(iter: I) -> Self where I: Iterator<Item = Self> {
+		iter.fold(Aabb::new(), |a, b| a + b)
+	}
+}
+
+impl Display for Aabb {
+
+	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+		write!(f, "[{}, {}, {}],[{}, {}, {}]", self.min.x, self.min.y, self.min.z, self.max.x, self.max.y, self.max.z)
 	}
 }
 

@@ -146,7 +146,8 @@ impl Scene {
 			// 	needs_update = true;
 			// }
 			//if needs_update {
-				node_bbox = node_bbox.get_superset(self.boundboxes[idx]);
+				//node_bbox = node_bbox.get_superset(self.boundboxes[idx]);
+				node_bbox = node_bbox + self.boundboxes[idx];
 			//}
 		}
 	

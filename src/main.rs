@@ -38,25 +38,7 @@ const FRAME_HEIGHT: u32 = 640;
 fn create_scene() -> Scene {
     
     let head_model = Arc::new(scene::WfObj::new("models/african_head.obj"));
-    let head_0 = scene::SceneObj::new(head_model.clone())
-        .scale(7.0, 7.0, 7.0)
-        .rotate(0.0, 0.0, 0.0)
-        .translate(3.0, 0.0, -30.0);
-    let head_1 = scene::SceneObj::new(head_model.clone())
-        .scale(7.0, 7.0, 7.0)
-        .rotate(0.0, 0.0, 0.0)
-        .translate(-3.0, 0.0, -30.0);
-    
     let cube_model = Arc::new(scene::WfObj::new("models/cube.obj"));
-    let _cube_0 = scene::SceneObj::new(cube_model.clone())
-        .scale(4.0, 4.0, 4.0)
-        .rotate(45.0, 45.0, 0.0)
-        .translate(5.0, 0.0, -30.0);
-    let _cube_1 = scene::SceneObj::new(cube_model.clone())
-        .scale(4.0, 4.0, 4.0)
-        .rotate(45.0, 45.0, 0.0)
-        .translate(-5.0, 0.0, -30.0);
-    
     let triangle_model = Arc::new(scene::TriObj::new(
         Triangle::new(
             Point3d::from_coords(-1.0, 1.0, 0.0),
@@ -64,27 +46,42 @@ fn create_scene() -> Scene {
             Point3d::from_coords(1.0, 0.8, 0.0),
         )
     ));
-    let _tri_0 = scene::SceneObj::new(triangle_model)
-        .scale(10.0, 10.0, 10.0)
-        .rotate(-45.0, 0.0, 0.0)
-        .translate(0.0, 0.0, -40.0);
-    
     let sphere_model = Arc::new(scene::SphereObj::new(
         Sphere::new(
             Point3d::from_coords(0.0, 0.0, -20.0),
             10.0
         )
     ));
-    let sphere_0 = scene::SceneObj::new(sphere_model)
-        .scale(1.0, 1.0, 1.0);
     
     let mut scene = Scene::new()
-        .add_obj(head_0)
-        .add_obj(head_1)
-        //.add_obj(sphere_0)
-        //.add_obj(Box::new(cube_0))
-        //.add_obj(Box::new(cube_1))
-        //.add_obj(Box::new(tri_0))
+        .add_obj(scene::SceneObj::new(head_model.clone())
+            .scale(7.0, 7.0, 7.0)
+            .rotate(0.0, 0.0, 0.0)
+            .translate(3.0, 0.0, -30.0)
+        )
+        .add_obj(scene::SceneObj::new(head_model.clone())
+            .scale(7.0, 7.0, 7.0)
+            .rotate(0.0, 0.0, 0.0)
+            .translate(-3.0, 0.0, -30.0)
+        )
+        //.add_obj(scene::SceneObj::new(sphere_model)
+        //         .scale(1.0, 1.0, 1.0)
+        // )
+        //.add_obj(scene::SceneObj::new(cube_model.clone())
+        //         .scale(4.0, 4.0, 4.0)
+        //         .rotate(45.0, 45.0, 0.0)
+        //         .translate(5.0, 0.0, -30.0)
+        // )
+        //.add_obj(scene::SceneObj::new(cube_model.clone())
+        //         .scale(4.0, 4.0, 4.0)
+        //         .rotate(45.0, 45.0, 0.0)
+        //         .translate(-5.0, 0.0, -30.0)
+        // )
+        //.add_obj(scene::SceneObj::new(triangle_model)
+        //         .scale(10.0, 10.0, 10.0)
+        //         .rotate(-45.0, 0.0, 0.0)
+        //         .translate(0.0, 0.0, -40.0)
+        // )
         //.add_light(Light::new(Point3d::from_coords(-50.0, -50.0, 50.0), 0.5))
         //.add_light(Light::new(Point3d::from_coords(10.0, 200.0, 20.0), 0.5))
         .add_light(Light::new(Point3d::from_coords(1.0, 0.0, 10.0), 0.5));
@@ -95,14 +92,7 @@ fn create_scene() -> Scene {
     scene
 }
 
-//type VtxShader = Box<dyn FnOnce(Point3d, Point3d, Vector3d, &Vec<Light>) -> f32 + Send + 'static>;
-
-
 fn main() {
-    //let mut thread_handles = vec![];
-    
-    //let (tx, rx) = mpsc::channel();
-    
     let frame_width = FRAME_WIDTH;
     let frame_height = FRAME_HEIGHT;
     

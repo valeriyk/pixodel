@@ -14,6 +14,7 @@ pub mod triangle;
 // pub mod plane;
 pub mod sphere;
 pub(crate) mod aabb;
+mod octree;
 
 
 #[inline]
