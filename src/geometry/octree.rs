@@ -9,23 +9,16 @@ use crate::geometry::triangle::Triangle;
 use std::marker;
 use std::marker::PhantomData;
 
-const OCTREE_MAX_NUM_CHILDREN: usize = 8;
-
-enum OctreeDim {X, Y, Z}
+const OCTREE_MAX_NUM_CHILDREN: usize = 2;
+const OCTREE_MAX_LEAF_CAPACITY: usize = 8;
 
 trait OrderByDim {
-	fn order_by_dim(&self, other: &Self, usize: &OctreeDim) -> Ordering;
 	fn get_dims(&self) -> usize;
 	fn get_morton_code(&self) -> u64;
 }
 trait Bounded<T: OrderByDim> {
 	fn get_centroid(&self) -> T;
 	fn get_bounding_box(&self) -> Aabb;
-}
-
-struct OctreeItem<T: OrderByDim> {
-	idx: usize,
-	centroid: T,
 }
 
 struct OctreeMortonItem {
@@ -36,7 +29,7 @@ struct OctreeMortonItem {
 struct OctreeLeafNode {
 	parent: Option<usize>,
 	bb: Aabb,
-	items_idx: [Option<usize>; OCTREE_MAX_NUM_CHILDREN]
+	items_idx: [Option<usize>; OCTREE_MAX_LEAF_CAPACITY]
 }
 struct OctreeInnerNode {
 	parent: Option<usize>,
@@ -84,7 +77,7 @@ impl OctreeLeafNode {
 		OctreeLeafNode {
 			parent: None,
 			bb: Aabb::new(),
-			items_idx: [None; 8],
+			items_idx: [None; OCTREE_MAX_LEAF_CAPACITY],
 		}
 	}
 }
@@ -93,7 +86,7 @@ impl OctreeInnerNode {
 		OctreeInnerNode {
 			parent: None,
 			bb: Aabb::new(),
-			children_idx: [None; 8],
+			children_idx: [None; OCTREE_MAX_NUM_CHILDREN],
 		}
 	}
 }
@@ -115,12 +108,6 @@ impl<T: OrderByDim, P: Bounded<T>> Octree<T, P> {
 			_centroid: PhantomData,
 		};
 		
-		let mut items: Vec<OctreeItem<T>> = primitives
-			.iter()
-			.enumerate()
-			.map(|(idx, prim)| OctreeItem {idx, centroid: prim.get_centroid()})
-			.collect();
-		
 		let mut indexed_morton: Vec<OctreeMortonItem> = primitives
 			.iter()
 			.enumerate()
@@ -138,7 +125,7 @@ impl<T: OrderByDim, P: Bounded<T>> Octree<T, P> {
 		octree
 	}
 	
-	fn get_min_num_nodes(num_elems: usize, max_node_capacity: usize) -> usize {
+	fn get_min_num_nodes(num_elems: usize, max_node_capacity: usize) -> usize { //TODO change radix8 to radix2
 		let depth = (num_elems as f32).log2().ceil() / (max_node_capacity as f32).log2().ceil();
 		let num_nodes = (8.0_f32.powf(depth + 1.0) - 1.0) / 7.0;
 		num_nodes as usize
@@ -149,17 +136,6 @@ impl<T: OrderByDim, P: Bounded<T>> Octree<T, P> {
 		let (below, above) = elems.split_at_mut((elems.len() / 2) as usize);
 		(below, above)
 	}
-	// fn sort_and_split_rec <'a>(elems: &'a mut [OctreeItem<T>], depth: usize) -> (&'a mut [OctreeItem<T>], &'a mut [OctreeItem<T>])
-	// {
-	//
-	// 	elems.sort_by(|a, b| a.centroid.order_by_dim(&b.centroid, dim));
-	// 	let (below, above) = elems.split_at_mut((elems.len() / 2) as usize);
-	// 	if depth < T::get_dims() {
-	// 		Octree::sort_and_split_rec(below, depth + 1);
-	// 		Octree::sort_and_split_rec(above, depth + 1);
-	// 	}
-	// 	(below, above)
-	// }
 	
 	pub fn build(&mut self, primitives: &[P], elems: &mut [OctreeMortonItem], parent_idx: Option<usize>) -> (usize, Aabb) {
 		if elems.len() <= self.max_leaf_capacity {
@@ -171,32 +147,19 @@ impl<T: OrderByDim, P: Bounded<T>> Octree<T, P> {
 			let inner_idx = self.push_inner(parent_idx);
 			
 			let (left, right) = Octree::<T, P>::split(elems);
-			let (left_bot, left_top) = Octree::<T, P>::split(left);
-			let (right_bot, right_top) = Octree::<T, P>::split(right);
-			let (left_bot_near, left_bot_far) = Octree::<T, P>::split(left_bot);
-			let (left_top_near, left_top_far) = Octree::<T, P>::split(left_top);
-			let (right_bot_near, right_bot_far) = Octree::<T, P>::split(right_bot);
-			let (right_top_near, right_top_far) = Octree::<T, P>::split(right_top);
-			let mut array: [&mut [OctreeMortonItem]; 8] = [
-				left_bot_near,
-				left_bot_far,
-				left_top_near,
-				left_top_far,
-				right_bot_near,
-				right_bot_far,
-				right_top_near,
-				right_top_far
-			];
 			
 			let mut inner_bb = Aabb::new();
-
-			array.iter_mut().enumerate().for_each(|(idx, slice)| {
-				if slice.len() > 0 {
-					let (child_idx, child_bb) = self.build(primitives, slice, Some(inner_idx));
-					self.nodes[inner_idx].set_child(idx, child_idx);
-					inner_bb += child_bb;
-				}
-			});
+			if left.len() > 0 {
+				let (child_idx, child_bb) = self.build(primitives, left, Some(inner_idx));
+				self.nodes[inner_idx].set_child(0, child_idx);
+				inner_bb += child_bb;
+			}
+			if right.len() > 0 {
+				let (child_idx, child_bb) = self.build(primitives, right, Some(inner_idx));
+				self.nodes[inner_idx].set_child(1, child_idx);
+				inner_bb += child_bb;
+			}
+			
 			self.nodes[inner_idx].set_bb(inner_bb);
 			(inner_idx, inner_bb)
 		}
@@ -232,13 +195,7 @@ mod tests {
 	const MAX_NODE_CAPACITY: usize = 1;
 	
 	impl OrderByDim for Point3d {
-		fn order_by_dim(&self, other: &Self, dim: &OctreeDim) -> Ordering {
-			match dim {
-				OctreeDim::X => self.x.partial_cmp(&other.x).unwrap(),
-				OctreeDim::Y => self.y.partial_cmp(&other.y).unwrap(),
-				OctreeDim::Z => self.z.partial_cmp(&other.z).unwrap(),
-			}
-		}
+		
 		fn get_dims(&self) -> usize {
 			3
 		}
