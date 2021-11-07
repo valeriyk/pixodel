@@ -1,42 +1,22 @@
 extern crate image;
 extern crate rayon;
 
+use geometry::{self, sphere::Sphere, triangle::Triangle, Mat4f, Point3d, Point4d, Ray3d};
+use image::{ImageBuffer, Rgb};
+use pixodel::scene::{self, *};
 use rayon::prelude::*;
 
+use std::sync::Arc;
 use std::time::Instant;
 
-//use std::ops::Deref;
-use std::sync::Arc;
-//use std::thread;
-
-use image::{ImageBuffer, Rgb};
-
-//use scene::{IntoTriangles, mesh};
-//use scene::light::Light;
-//use scene::mesh::Mesh;
-
-use geometry::triangle::Triangle;
-use geometry::{Mat4f, Point3d, Point4d};
-use geometry::ray::Ray3d;
-use geometry::sphere::Sphere;
-
-use pixodel::scene;
-use pixodel::scene::shading;
-use pixodel::scene::wfobj;
-use pixodel::scene::{Light, Scene, SphereObj};
-
-//const NUM_SLAVES: u32 = 8;
-
-const FRAME_WIDTH: u32 = 640;
-const FRAME_HEIGHT: u32 = 640;
-
-// const TILE_WIDTH: u32 = 32;
-// const TILE_HEIGHT: u32 = TILE_WIDTH;
+const FRAME_WIDTH: u32 = 1280;
+const FRAME_HEIGHT: u32 = 720;
 
 fn create_scene() -> Scene {
     let head_model = Arc::new(scene::WfObj::new("models/african_head.obj"));
     let cube_model = Arc::new(scene::WfObj::new("models/cube.obj"));
     let stanf_bunny_model = Arc::new(scene::WfObj::new("models/bunny.obj"));
+    let nefertiti_model = Arc::new(scene::WfObj::new("models/Nefertiti.obj"));
     let triangle_model = Arc::new(scene::TriObj::new(Triangle::new(
         Point3d::from_coords(-1.0, 1.0, 0.0),
         Point3d::from_coords(0.0, -1.0, 0.0),
@@ -47,13 +27,19 @@ fn create_scene() -> Scene {
         10.0,
     )));
 
-    let mut scene = Scene::new()
+    Scene::new()
         .add_obj(
-            scene::SceneObj::new(stanf_bunny_model.clone())
-                .scale(7.0, 7.0, 7.0)
-                .rotate(30.0, -50.0, 0.0)
-                .translate(5.0, -8.0, -50.0),
+            scene::SceneObj::new(nefertiti_model.clone())
+                .scale(0.1, 0.1, 0.1)
+                .rotate(90.0, 180.0, 135.0)
+                .translate(0.0, 0.0, -100.0),
         )
+        // .add_obj(
+        //     scene::SceneObj::new(stanf_bunny_model.clone())
+        //         .scale(7.0, 7.0, 7.0)
+        //         .rotate(30.0, -50.0, 0.0)
+        //         .translate(5.0, -8.0, -50.0),
+        // )
         // .add_obj(
         //     scene::SceneObj::new(head_model.clone())
         //         .scale(7.0, 7.0, 7.0)
@@ -86,13 +72,7 @@ fn create_scene() -> Scene {
         // )
         //.add_light(Light::new(Point3d::from_coords(-50.0, -50.0, 50.0), 0.5))
         //.add_light(Light::new(Point3d::from_coords(10.0, 200.0, 20.0), 0.5))
-        .add_light(Light::new(Point3d::from_coords(1.0, 0.0, 10.0), 0.5));
-
-    let timer = Instant::now();
-    scene.accelerate();
-    println!("BVH construction took: {:.2?}", timer.elapsed());
-    
-    scene
+        .add_light(Light::new(Point3d::from_coords(1.0, 0.0, 10.0), 0.5))
 }
 
 fn main() {
@@ -126,50 +106,17 @@ fn main() {
     let recursion_depth = 4;
 
     loop {
-        //let mesh_glob = Arc::new(create_scene_mesh());
-
         //let timer = Instant::now();
         let mesh_glob = create_scene();
         //println!("Elapsed time: {:.2?}", timer.elapsed());
-    
+
         let timer = Instant::now();
         let lbvh = mesh_glob.build_lbvh::<8>();
         println!("LBVH construction took: {:.2?}", timer.elapsed());
         //println!("{}", lbvh);
-        
+
         let timer = Instant::now();
 
-        let mut fbuf: Vec<[u8; 3]> = vec![[0, 0, 0]; (frame_width * frame_height) as usize];
-        fbuf.par_iter_mut().enumerate().for_each(|(idx, pix)| {
-            let x = idx as u32 % frame_width;
-            let y = idx as u32 / frame_width;
-            let ray_aim = Point3d::from(
-                &screen_to_world * Point4d::from_coords(x as f32, y as f32, -1.0, 1.0),
-            );
-            let ray_dir = ray_aim - ray_orig;
-            let ray = Ray3d::from(ray_orig, ray_dir.normalize());
-            let color = mesh_glob.cast_ray(
-                &ray,
-                &|a, b, c, d| shading::phong(a, b, c, d),
-                recursion_depth,
-            );
-            *pix = color;
-        });
-
-        println!("Tracing took: {:.2?}", timer.elapsed());
-
-        //let fbuf = fbuf.iter().flatten().map(|x| *x).collect();
-        let fbuf = fbuf.iter().flat_map(|x| *x).collect();
-
-        let mut img: ImageBuffer<Rgb<u8>, Vec<u8>> =
-            ImageBuffer::from_vec(frame_width, frame_height, fbuf).unwrap();
-        image::imageops::flip_vertical_in_place(&mut img);
-        img.save("../myimg.png").unwrap();
-    
-    
-    
-        let timer = Instant::now();
-    
         let mut fbuf: Vec<[u8; 3]> = vec![[0, 0, 0]; (frame_width * frame_height) as usize];
         fbuf.par_iter_mut().enumerate().for_each(|(idx, pix)| {
             let x = idx as u32 % frame_width;
@@ -187,17 +134,17 @@ fn main() {
             );
             *pix = color;
         });
-    
+
         println!("Tracing took: {:.2?}", timer.elapsed());
-    
+
         //let fbuf = fbuf.iter().flatten().map(|x| *x).collect();
         let fbuf = fbuf.iter().flat_map(|x| *x).collect();
-    
+
         let mut img: ImageBuffer<Rgb<u8>, Vec<u8>> =
             ImageBuffer::from_vec(frame_width, frame_height, fbuf).unwrap();
         image::imageops::flip_vertical_in_place(&mut img);
         img.save("../myimg2.png").unwrap();
-        
+
         break;
     }
 }

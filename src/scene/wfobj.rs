@@ -4,11 +4,9 @@ use std::sync::Arc;
 use wavefront_obj::obj::{self, ObjSet};
 use wavefront_obj::ParseError;
 
-//use crate::scene::{IntoTriangles, IntoPrimitives};
 use geometry::triangle::Triangle;
 use geometry::{Point3d, PrimitiveType};
 use crate::scene::IntoPrimitives;
-//use crate::geometry::matrix_transform::*;
 
 pub struct WfObj {
     model: ObjSet,
@@ -37,11 +35,6 @@ impl WfObj {
     }
 }
 
-// impl IntoTriangles for WfObj {
-// 	fn triangulate(&self) -> Vec<Triangle> {
-// 		self.iter().collect()
-// 	}
-// }
 impl IntoPrimitives for WfObj {
     fn to_primitives(&self) -> Vec<PrimitiveType> {
         self.iter().collect()
