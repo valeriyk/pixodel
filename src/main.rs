@@ -36,6 +36,7 @@ const FRAME_HEIGHT: u32 = 640;
 fn create_scene() -> Scene {
     let head_model = Arc::new(scene::WfObj::new("models/african_head.obj"));
     let cube_model = Arc::new(scene::WfObj::new("models/cube.obj"));
+    let stanf_bunny_model = Arc::new(scene::WfObj::new("models/bunny.obj"));
     let triangle_model = Arc::new(scene::TriObj::new(Triangle::new(
         Point3d::from_coords(-1.0, 1.0, 0.0),
         Point3d::from_coords(0.0, -1.0, 0.0),
@@ -48,17 +49,23 @@ fn create_scene() -> Scene {
 
     let mut scene = Scene::new()
         .add_obj(
-            scene::SceneObj::new(head_model.clone())
+            scene::SceneObj::new(stanf_bunny_model.clone())
                 .scale(7.0, 7.0, 7.0)
-                .rotate(0.0, 0.0, 0.0)
-                .translate(3.0, 0.0, -30.0),
+                .rotate(30.0, -50.0, 0.0)
+                .translate(5.0, -8.0, -50.0),
         )
-        .add_obj(
-            scene::SceneObj::new(head_model.clone())
-                .scale(7.0, 7.0, 7.0)
-                .rotate(0.0, 0.0, 0.0)
-                .translate(-3.0, 0.0, -30.0),
-        )
+        // .add_obj(
+        //     scene::SceneObj::new(head_model.clone())
+        //         .scale(7.0, 7.0, 7.0)
+        //         .rotate(0.0, 0.0, 0.0)
+        //         .translate(3.0, 0.0, -30.0),
+        // )
+        // .add_obj(
+        //     scene::SceneObj::new(head_model.clone())
+        //         .scale(7.0, 7.0, 7.0)
+        //         .rotate(0.0, 0.0, 0.0)
+        //         .translate(-3.0, 0.0, -30.0),
+        // )
         //.add_obj(scene::SceneObj::new(sphere_model)
         //         .scale(1.0, 1.0, 1.0)
         // )
@@ -128,7 +135,7 @@ fn main() {
         let timer = Instant::now();
         let lbvh = mesh_glob.build_lbvh::<8>();
         println!("LBVH construction took: {:.2?}", timer.elapsed());
-        println!("{}", lbvh);
+        //println!("{}", lbvh);
         
         let timer = Instant::now();
 
