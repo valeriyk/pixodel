@@ -11,4 +11,6 @@ image = "0.23.3"
 wavefront_obj = "9.0.0"
 rayon = "1.5.1"
 morton-encoding = "2.0.1"
+lbvh = { path = "../lbvh" }
+geometry = { path = "../geometry" }
 

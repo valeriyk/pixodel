@@ -1,13 +1,11 @@
-//
-//
-//
-// #[cfg(test)]
-// mod test {
-// 	extern crate rayon;
-// 	use rayon::prelude::*;
-//
-// 	#[test]
-// 	fn t1 () {
-//
-// 	}
-// }
+use geometry::sphere::Sphere;
+use geometry::triangle::Triangle;
+use geometry::Point3d;
+use crate::scene::light::Light;
+use crate::scene::Scene;
+use std::sync::Arc;
+use std::time::Instant;
+
+mod img_tiles;
+
+pub mod scene;
