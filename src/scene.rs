@@ -21,7 +21,6 @@ pub mod light;
 pub mod triangle;
 pub mod wfobj;
 //pub mod tracing;
-mod bvhtree;
 pub mod shading;
 mod sphere;
 
@@ -61,8 +60,12 @@ impl Scene {
     pub fn build_lbvh<const N: usize>(&self) -> Octree<PrimitiveType, N>{
         lbvh::Octree::<PrimitiveType, N>::new(&self.primitives)
     }
-
-    pub fn cast_ray_lbvh<F, const N: usize>(&self, lbvh: &Octree<PrimitiveType, N>, ray: &Ray3d, vtx_shader: &F, depth: usize) -> [u8; 3]
+    
+    pub fn build_par_lbvh<const N: usize>(&self) -> ParOctree<PrimitiveType, N>{
+        lbvh::ParOctree::<PrimitiveType, N>::new(&self.primitives)
+    }
+    
+    pub fn cast_ray_lbvh<F, const N: usize>(&self, lbvh: &ParOctree<PrimitiveType, N>, ray: &Ray3d, vtx_shader: &F, depth: usize) -> [u8; 3]
         where
             F: FnOnce(Point3d, Point3d, Vector3d, &Vec<Light>) -> f32 + Send + Copy + 'static,
     {

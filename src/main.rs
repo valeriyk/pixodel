@@ -13,10 +13,10 @@ const FRAME_WIDTH: u32 = 1280;
 const FRAME_HEIGHT: u32 = 720;
 
 fn create_scene() -> Scene {
-    let head_model = Arc::new(scene::WfObj::new("models/african_head.obj"));
-    let cube_model = Arc::new(scene::WfObj::new("models/cube.obj"));
-    let stanf_bunny_model = Arc::new(scene::WfObj::new("models/bunny.obj"));
-    let nefertiti_model = Arc::new(scene::WfObj::new("models/Nefertiti.obj"));
+    let head_model = Arc::new(scene::WfObj::new("pixodel/models/african_head.obj"));
+    let cube_model = Arc::new(scene::WfObj::new("pixodel/models/cube.obj"));
+    let stanf_bunny_model = Arc::new(scene::WfObj::new("pixodel/models/bunny.obj"));
+    let nefertiti_model = Arc::new(scene::WfObj::new("pixodel/models/Nefertiti.obj"));
     let triangle_model = Arc::new(scene::TriObj::new(Triangle::new(
         Point3d::from_coords(-1.0, 1.0, 0.0),
         Point3d::from_coords(0.0, -1.0, 0.0),
@@ -28,18 +28,18 @@ fn create_scene() -> Scene {
     )));
 
     Scene::new()
-        .add_obj(
-            scene::SceneObj::new(nefertiti_model.clone())
-                .scale(0.1, 0.1, 0.1)
-                .rotate(90.0, 180.0, 135.0)
-                .translate(0.0, 0.0, -100.0),
-        )
         // .add_obj(
-        //     scene::SceneObj::new(stanf_bunny_model.clone())
-        //         .scale(7.0, 7.0, 7.0)
-        //         .rotate(30.0, -50.0, 0.0)
-        //         .translate(5.0, -8.0, -50.0),
+        //     scene::SceneObj::new(nefertiti_model.clone())
+        //         .scale(0.1, 0.1, 0.1)
+        //         .rotate(90.0, 180.0, 135.0)
+        //         .translate(0.0, 0.0, -100.0),
         // )
+        .add_obj(
+            scene::SceneObj::new(stanf_bunny_model.clone())
+                .scale(7.0, 7.0, 7.0)
+                .rotate(30.0, -50.0, 0.0)
+                .translate(5.0, -8.0, -50.0),
+        )
         // .add_obj(
         //     scene::SceneObj::new(head_model.clone())
         //         .scale(7.0, 7.0, 7.0)
@@ -111,7 +111,7 @@ fn main() {
         //println!("Elapsed time: {:.2?}", timer.elapsed());
 
         let timer = Instant::now();
-        let lbvh = mesh_glob.build_lbvh::<8>();
+        let lbvh = mesh_glob.build_par_lbvh::<8>();
         println!("LBVH construction took: {:.2?}", timer.elapsed());
         //println!("{}", lbvh);
 
@@ -143,7 +143,7 @@ fn main() {
         let mut img: ImageBuffer<Rgb<u8>, Vec<u8>> =
             ImageBuffer::from_vec(frame_width, frame_height, fbuf).unwrap();
         image::imageops::flip_vertical_in_place(&mut img);
-        img.save("../myimg2.png").unwrap();
+        img.save("myimg2.png").unwrap();
 
         break;
     }

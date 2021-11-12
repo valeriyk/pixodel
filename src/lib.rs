@@ -6,6 +6,5 @@ use crate::scene::Scene;
 use std::sync::Arc;
 use std::time::Instant;
 
-mod img_tiles;
 
 pub mod scene;
